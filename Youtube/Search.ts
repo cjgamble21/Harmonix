@@ -5,11 +5,18 @@ const YoutubeAPI = axios.create({
     baseURL: process.env.YOUTUBE_URL
 })
 
-export const queryVideos = (query: string) => YoutubeAPI.get<SearchResult>(`search`, {
-    params: {
+export const queryVideos = (query: string) => 
+    YoutubeAPI.get<SearchResult>(`search`, 
+    {
+        params: {
         part: "snippet",
         type: "video",
         key: process.env.YOUTUBE_API_KEY,
         q: query
     }
-}).then((res) => res.data)
+    })
+    .then((res) => res.data.items.map((item) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        description: item.snippet.description
+    })))
