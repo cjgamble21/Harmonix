@@ -1,10 +1,5 @@
-import {
-    Client,
-    IntentsBitField,
-    REST,
-    Routes,
-    SlashCommandBuilder,
-} from 'discord.js'
+import { Client, IntentsBitField, REST, Routes } from 'discord.js'
+import { commands } from './Commands'
 
 const botToken = process.env.DISCORD_BOT_TOKEN ?? ''
 const botId = process.env.DISCORD_BOT_ID ?? ''
@@ -24,18 +19,6 @@ client.on('ready', () => console.log('Teehee!'))
 client.login(botToken)
 
 const rest = new REST().setToken(botToken ?? '')
-
-const commands = [
-    new SlashCommandBuilder()
-        .setName('play')
-        .setDescription('Search Youtube for your song you disgusting mutt')
-        .addStringOption((option) =>
-            option
-                .setName('query')
-                .setDescription('Youtube search query')
-                .setRequired(true)
-        ),
-]
 
 rest.put(Routes.applicationGuildCommands(botId, serverId), {
     body: commands,
