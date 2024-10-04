@@ -1,22 +1,22 @@
-import axios from "axios";
-import { SearchResult } from "./SearchResult.type";
+import axios from 'axios'
+import { SearchResult } from './SearchResult.type'
 
 const YoutubeAPI = axios.create({
-    baseURL: process.env.YOUTUBE_URL
+    baseURL: process.env.YOUTUBE_URL,
 })
 
-export const queryVideos = (query: string) => 
-    YoutubeAPI.get<SearchResult>(`search`, 
-    {
+export const queryVideos = (query: string) =>
+    YoutubeAPI.get<SearchResult>(`search`, {
         params: {
-        part: "snippet",
-        type: "video",
-        key: process.env.YOUTUBE_API_KEY,
-        q: query
-    }
-    })
-    .then((res) => res.data.items.map((item) => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        description: item.snippet.description
-    })))
+            part: 'snippet',
+            type: 'video',
+            key: process.env.YOUTUBE_API_KEY,
+            q: query,
+        },
+    }).then((res) =>
+        res.data.items.map((item) => ({
+            id: item.id.videoId,
+            title: item.snippet.title,
+            description: item.snippet.description,
+        }))
+    )
