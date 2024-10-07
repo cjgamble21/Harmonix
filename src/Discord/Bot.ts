@@ -47,8 +47,6 @@ player.on(AudioPlayerStatus.Playing, () =>
 )
 
 const streamMusic = async () => {
-    const url = 'https://www.youtube.com/watch?v=nyepzdWMZJ4'
-
     const getVoiceChannelFromInteraction = (
         interaction: Interaction<CacheType>
     ) => {
@@ -82,6 +80,12 @@ const streamMusic = async () => {
                     adapterCreator:
                         guild?.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator,
                 })
+
+                const videoId = interaction.options.get('query')?.value
+
+                const url = `https://www.youtube.com/watch?v=${videoId}`
+
+                console.log(url)
 
                 const songStream = ytdl.default(url, {
                     filter: 'audioonly',
