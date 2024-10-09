@@ -1,9 +1,12 @@
 {
   "name": "harmonix",
   "version": "1.0.0",
-  "description": "",
+  "description": "Custom Discord bot that can stream any music you choose in your voice channel",
   "main": "dist/index.js",
   "scripts": {
+    "start": "node --env-file=.env dist/index.js",
+    "build": "tsc",
+    "deploy-commands": "tsc && node --env-file=.env dist/Discord/Commands/DeployCommands.js",
     "dev": "tsc && node --env-file=.env dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

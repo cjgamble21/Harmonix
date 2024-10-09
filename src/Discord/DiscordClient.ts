@@ -7,14 +7,7 @@ import {
     joinVoiceChannel,
 } from '@discordjs/voice'
 import ytdl from '@distube/ytdl-core'
-import {
-    CacheType,
-    Client,
-    IntentsBitField,
-    Interaction,
-    REST,
-    Routes,
-} from 'discord.js'
+import { CacheType, Client, IntentsBitField, Interaction } from 'discord.js'
 import { queryVideos } from '../Youtube'
 
 export class DiscordClient {
