@@ -15,6 +15,7 @@ import {
     joinVoiceChannel,
 } from '@discordjs/voice'
 import * as ytdl from '@distube/ytdl-core'
+import { queryVideos } from '../Youtube'
 
 const botToken = process.env.DISCORD_BOT_TOKEN ?? ''
 const botId = process.env.DISCORD_BOT_ID ?? ''
@@ -90,6 +91,10 @@ const streamMusic = async () => {
                 const songStream = ytdl.default(url, {
                     filter: 'audioonly',
                     quality: 'highestaudio',
+                    /* 
+                        Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
+                    */
+                    highWaterMark: 1 << 25,
                 })
 
                 const resource = createAudioResource(songStream)
@@ -98,13 +103,24 @@ const streamMusic = async () => {
 
                 const subscription = connection.subscribe(player)
 
-                if (subscription) {
+                player.on(AudioPlayerStatus.Idle, () =>
                     setTimeout(() => {
-                        subscription.unsubscribe()
+                        subscription?.unsubscribe()
                         connection.disconnect()
-                    }, 30_000)
-                }
+                    }, 10_000)
+                )
             }
+        } else if (interaction.isAutocomplete()) {
+            const query = interaction.options.get('query')?.value
+
+            const results = await queryVideos(String(query))
+
+            return interaction.respond(
+                results.map(({ title, id }) => ({
+                    name: title.slice(0, 100),
+                    value: id,
+                }))
+            )
         }
     })
 }

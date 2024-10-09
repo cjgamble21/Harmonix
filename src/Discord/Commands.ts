@@ -8,10 +8,7 @@ const playCommand = new SlashCommandBuilder()
             .setName('query')
             .setDescription('Youtube search query')
             .setRequired(true)
-            .addChoices({
-                name: 'NMDUB and WolfySharpFang',
-                value: 'LzPgFh5F2tM',
-            })
+            .setAutocomplete(true)
     )
 
 export const commands = [playCommand]
