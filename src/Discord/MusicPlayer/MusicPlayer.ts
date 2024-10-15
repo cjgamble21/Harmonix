@@ -19,7 +19,7 @@ import { VideoMetadata } from '../../Youtube/types/SearchResult.type'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../Logger'
 import { Interaction } from 'discord.js'
-import { TimeoutHandler } from '../TimeoutHandler'
+import { TimeoutHandler } from '../../Utilities/TimeoutHandler'
 import { sendChatMessage, sendEphemeralChatMessage } from '../Chat'
 import { formatMillisecondsToMinutesAndSeconds } from '../../Utilities'
 
@@ -66,14 +66,22 @@ export class MusicPlayer {
 
     public skip() {
         this.player.stop()
+        this.start()
     }
 
     public enqueue(...metadata: VideoMetadata[]) {
         this.queue.push(...metadata)
+        metadata.forEach(({ title }) =>
+            sendChatMessage(this.interaction, `Added ${title} to the queue!`)
+        )
     }
 
     public dequeue(...metadata: VideoMetadata[]) {
         this.queue.dequeue(metadata, ({ id }) => id)
+
+        metadata.forEach(({ title }) =>
+            sendChatMessage(this.interaction, `Remove ${title} from the queue!`)
+        )
     }
 
     public onBuffering(

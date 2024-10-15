@@ -7,20 +7,22 @@ import {
     joinVoiceChannel,
 } from '@discordjs/voice'
 import ytdl from '@distube/ytdl-core'
-import { CacheType, Client, IntentsBitField, Interaction } from 'discord.js'
-import { queryVideos } from '../Youtube'
+import {
+    AutocompleteInteraction,
+    CacheType,
+    Client,
+    IntentsBitField,
+    Interaction,
+} from 'discord.js'
+import { getVideoMetadata, queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
-
-import https from 'https'
-
-const agent = new https.Agent({ keepAlive: true, timeout: 30000 })
+import { MusicPlayer } from './MusicPlayer'
 
 export class DiscordClient {
     botId: string
     botToken: string
     client: Client
-    player: AudioPlayer
 
     constructor() {
         this.botId = process.env.DISCORD_BOT_ID ?? ''
@@ -35,96 +37,56 @@ export class DiscordClient {
                 IntentsBitField.Flags.GuildVoiceStates,
             ],
         })
+
         this.client.login(this.botToken)
 
         this.client.on('ready', () => {
             Logger.event('Discord Client Initialized')
             deployCommands()
         })
-
-        this.player = createAudioPlayer()
     }
 
-    private getVoiceChannelFromInteraction(
-        interaction: Interaction<CacheType>
-    ) {
-        const { guild, user } = interaction
-        return guild?.members
-            .fetch(user.id)
-            .then((member) => member.voice.channelId)
-            .catch((err) => {
-                Logger.error(`Error while fetching current channel ID: ${err}`)
-            })
+    private async getOptionsFromQuery(interaction: AutocompleteInteraction) {
+        const query = interaction.options.get('query')?.value
+
+        const results = await queryVideos(String(query))
+
+        return interaction.respond(
+            results.map(({ title, id }) => ({
+                name: title.slice(0, 100),
+                value: id,
+            }))
+        )
     }
 
     addInteractionListener() {
-        let timeout: NodeJS.Timeout
-
-        this.player.on(AudioPlayerStatus.Playing, () => {
-            if (timeout) clearTimeout(timeout)
-        })
         this.client.on('interactionCreate', async (interaction) => {
-            if (interaction.isCommand() && interaction.commandName === 'play') {
-                interaction.guildId
-                const voiceChannelId =
-                    await this.getVoiceChannelFromInteraction(interaction)
+            const player = new MusicPlayer(interaction)
 
-                if (!voiceChannelId) {
-                    return interaction.reply({
-                        content: 'Unable to retrieve the member information!',
-                        ephemeral: true,
-                    })
+            if (interaction.isCommand()) {
+                switch (interaction.commandName) {
+                    case 'play': {
+                        const id = interaction.options.get('query')?.value
+
+                        console.log(id)
+
+                        const metadata = await getVideoMetadata(String(id))
+
+                        console.log(metadata)
+
+                        player.enqueue(metadata)
+
+                        player.start()
+                    }
+
+                    case 'skip':
+                        player.skip()
+
+                    default:
+                        interaction.reply('Unsupported command :(')
                 }
-
-                const { guild } = interaction
-
-                const connection = joinVoiceChannel({
-                    channelId: voiceChannelId ?? '',
-                    guildId: guild?.id ?? '',
-                    adapterCreator:
-                        guild?.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator,
-                })
-
-                const videoId = interaction.options.get('query')?.value
-
-                const url = `https://www.youtube.com/watch?v=${videoId}`
-
-                console.log(url)
-
-                const songStream = ytdl(url, {
-                    filter: 'audioonly',
-                    quality: 'highestaudio',
-                    /* 
-                            Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
-                        */
-                    highWaterMark: 1 << 25,
-                })
-
-                const resource = createAudioResource(songStream)
-
-                this.player.play(resource)
-
-                const subscription = connection.subscribe(this.player)
-
-                this.player.on(
-                    AudioPlayerStatus.Idle,
-                    () =>
-                        (timeout = setTimeout(() => {
-                            subscription?.unsubscribe()
-                            connection.disconnect()
-                        }, 10_000))
-                )
             } else if (interaction.isAutocomplete()) {
-                const query = interaction.options.get('query')?.value
-
-                const results = await queryVideos(String(query))
-
-                return interaction.respond(
-                    results.map(({ title, id }) => ({
-                        name: title.slice(0, 100),
-                        value: id,
-                    }))
-                )
+                this.getOptionsFromQuery(interaction)
             }
         })
     }

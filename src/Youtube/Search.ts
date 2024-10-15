@@ -29,3 +29,20 @@ export const queryVideos = (query: string): Promise<VideoMetadata[]> =>
             description: item.snippet.description,
         }))
     )
+
+export const getVideoMetadata = (id: string): Promise<VideoMetadata> =>
+    YoutubeAPI.get(`videos`, {
+        params: {
+            part: 'snippet',
+            type: 'video',
+            key: apiKey,
+            id,
+        },
+    }).then(
+        (res) =>
+            res.data.items.map((item: any) => ({
+                id,
+                title: item.snippet.title,
+                description: item.snippet.description,
+            }))[0]
+    )
