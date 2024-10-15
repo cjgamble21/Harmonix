@@ -1,15 +1,21 @@
 export namespace Logger {
     export function error(invoker: string, ...errors: string[]) {
-        console.error(
-            `APPLICATION ERROR :: Error in ${invoker} : ${errors.join(', ')}`
-        )
+        errors
+            .map(
+                (error) => `APPLICATION ERROR :: Error in ${invoker} : ${error}`
+            )
+            .forEach((error) => console.log(error))
     }
 
     export function warn(...warnings: string[]) {
-        console.warn(`APPLICATION WARNING :: ${warnings.join(', ')}`)
+        warnings
+            .map((warning) => `APPLICATION WARNING :: ${warning}`)
+            .forEach((warning) => console.log(warning))
     }
 
     export function event(...events: string[]) {
-        console.log(`${events.map((event) => `EVENT TRIGGERED :: ${event}`)}`)
+        events
+            .map((event) => `EVENT TRIGGERED :: ${event}`)
+            .forEach((event) => console.log(event))
     }
 }

@@ -1,6 +1,9 @@
 import {
     AudioPlayer,
     AudioPlayerBufferingState,
+    AudioPlayerIdleState,
+    AudioPlayerPausedState,
+    AudioPlayerPlayingState,
     AudioPlayerState,
     AudioPlayerStatus,
     AudioResource,
@@ -11,24 +14,28 @@ import { Queue } from '../../Queue'
 import { VideoMetadata } from '../../Youtube/types/SearchResult.type'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../Logger'
+import { Interaction } from 'discord.js'
 
 export class MusicPlayer {
     queue: Queue<VideoMetadata>
     player: AudioPlayer
+    interaction: Interaction
 
-    constructor() {
+    constructor(interaction: Interaction) {
         this.queue = new Queue()
         this.player = createAudioPlayer()
+        this.interaction = interaction
 
         this.registerLifecycleMethods()
     }
 
     public start() {
-        if (this.queue.isEmpty()) return
+        const metadata = this.queue.pop()
 
-        Logger.warn('Attempted to start music player with empty queue')
-
-        const metadata = this.queue.pop() as VideoMetadata // Can't be empty
+        if (!metadata) {
+            Logger.warn('Attempted to start music player with empty queue')
+            return
+        }
 
         const song = MusicPlayer.getSongStreamFromVideoMetadata(metadata)
 
@@ -60,13 +67,39 @@ export class MusicPlayer {
         Logger.event('Audio Player Buffering...')
     }
 
-    public onIdle() {
+    public onIdle(oldState: AudioPlayerState, newState: AudioPlayerIdleState) {
         Logger.event('Audio Player Idling...')
+    }
+
+    public onPause(
+        oldState: AudioPlayerState,
+        newState: AudioPlayerPausedState
+    ) {
+        Logger.event('Audio Player Paused...')
+    }
+
+    public onPlay(
+        oldState: AudioPlayerState,
+        newState: AudioPlayerPlayingState
+    ) {
+        Logger.event('Audio Player Playing...')
     }
 
     private registerLifecycleMethods() {
         this.player.on(AudioPlayerStatus.Idle, this.onIdle.bind(this))
         this.player.on(AudioPlayerStatus.Buffering, this.onBuffering.bind(this))
+        this.player.on(AudioPlayerStatus.Paused, this.onPause.bind(this))
+        this.player.on(AudioPlayerStatus.Playing, this.onPlay.bind(this))
+    }
+
+    private getVoiceChannelFromInteraction() {
+        const { guild, user } = this.interaction
+        return guild?.members
+            .fetch(user.id)
+            .then((member) => member.voice.channelId)
+            .catch((err) => {
+                Logger.error(`Error while fetching current channel ID: ${err}`)
+            })
     }
 
     private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {

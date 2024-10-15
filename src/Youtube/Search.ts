@@ -1,9 +1,17 @@
 import axios from 'axios'
-import { SearchResult } from './SearchResult.type'
-import { VideoMetadata } from './types/SearchResult.type'
+import { SearchResult, VideoMetadata } from './types'
+import { Logger } from '../Logger'
+
+const url = process.env.YOUTUBE_URL
+const apiKey = process.env.YOUTUBE_API_KEY
+
+if (!url || !apiKey) {
+    Logger.error('Missing Youtube URL / API key')
+    throw new Error('Missing env var')
+}
 
 const YoutubeAPI = axios.create({
-    baseURL: process.env.YOUTUBE_URL,
+    baseURL: url,
 })
 
 export const queryVideos = (query: string): Promise<VideoMetadata[]> =>
@@ -11,7 +19,7 @@ export const queryVideos = (query: string): Promise<VideoMetadata[]> =>
         params: {
             part: 'snippet',
             type: 'video',
-            key: process.env.YOUTUBE_API_KEY,
+            key: apiKey,
             q: query,
         },
     }).then((res) =>
