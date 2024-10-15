@@ -1,3 +1,5 @@
+import { Primitive } from '../Utilities'
+
 export class Queue<T> {
     container: T[]
 
@@ -17,5 +19,11 @@ export class Queue<T> {
         if (this.isEmpty()) return null
 
         return this.container.pop() as T
+    }
+
+    public dequeue(items: T[], comparator: (item: T) => Primitive) {
+        this.container = this.container.filter(
+            (item) => !items.map(comparator).includes(comparator(item))
+        )
     }
 }

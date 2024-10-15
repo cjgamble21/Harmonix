@@ -12,6 +12,10 @@ import { queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 
+import https from 'https'
+
+const agent = new https.Agent({ keepAlive: true, timeout: 30000 })
+
 export class DiscordClient {
     botId: string
     botToken: string
@@ -54,6 +58,11 @@ export class DiscordClient {
     }
 
     addInteractionListener() {
+        let timeout: NodeJS.Timeout
+
+        this.player.on(AudioPlayerStatus.Playing, () => {
+            if (timeout) clearTimeout(timeout)
+        })
         this.client.on('interactionCreate', async (interaction) => {
             if (interaction.isCommand() && interaction.commandName === 'play') {
                 interaction.guildId
@@ -97,11 +106,13 @@ export class DiscordClient {
 
                 const subscription = connection.subscribe(this.player)
 
-                this.player.on(AudioPlayerStatus.Idle, () =>
-                    setTimeout(() => {
-                        subscription?.unsubscribe()
-                        connection.disconnect()
-                    }, 10_000)
+                this.player.on(
+                    AudioPlayerStatus.Idle,
+                    () =>
+                        (timeout = setTimeout(() => {
+                            subscription?.unsubscribe()
+                            connection.disconnect()
+                        }, 10_000))
                 )
             } else if (interaction.isAutocomplete()) {
                 const query = interaction.options.get('query')?.value
