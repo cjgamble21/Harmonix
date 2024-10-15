@@ -15,5 +15,3 @@ export const deployCommands = () => {
         body: commands,
     })
 }
-
-deployCommands()

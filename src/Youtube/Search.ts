@@ -1,11 +1,12 @@
 import axios from 'axios'
 import { SearchResult } from './SearchResult.type'
+import { VideoMetadata } from './types/SearchResult.type'
 
 const YoutubeAPI = axios.create({
     baseURL: process.env.YOUTUBE_URL,
 })
 
-export const queryVideos = (query: string) =>
+export const queryVideos = (query: string): Promise<VideoMetadata[]> =>
     YoutubeAPI.get<SearchResult>(`search`, {
         params: {
             part: 'snippet',

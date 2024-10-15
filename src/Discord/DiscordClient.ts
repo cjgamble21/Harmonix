@@ -49,7 +49,7 @@ export class DiscordClient {
             .fetch(user.id)
             .then((member) => member.voice.channelId)
             .catch((err) => {
-                console.log(`Error while fetching current channel ID: ${err}`)
+                Logger.error(`Error while fetching current channel ID: ${err}`)
             })
     }
 
@@ -79,6 +79,8 @@ export class DiscordClient {
                 const videoId = interaction.options.get('query')?.value
 
                 const url = `https://www.youtube.com/watch?v=${videoId}`
+
+                console.log(url)
 
                 const songStream = ytdl(url, {
                     filter: 'audioonly',
