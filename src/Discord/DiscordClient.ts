@@ -1,16 +1,8 @@
 import {
-    AudioPlayer,
-    AudioPlayerStatus,
-    DiscordGatewayAdapterCreator,
-    createAudioPlayer,
-    createAudioResource,
-    joinVoiceChannel,
-} from '@discordjs/voice'
-import ytdl from '@distube/ytdl-core'
-import {
     AutocompleteInteraction,
     CacheType,
     Client,
+    Events,
     IntentsBitField,
     Interaction,
 } from 'discord.js'
@@ -60,30 +52,30 @@ export class DiscordClient {
     }
 
     addInteractionListener() {
-        this.client.on('interactionCreate', async (interaction) => {
+        this.client.on(Events.InteractionCreate, async (interaction) => {
             const player = new MusicPlayer(interaction)
 
             if (interaction.isCommand()) {
+                console.log(interaction.commandName)
                 switch (interaction.commandName) {
-                    case 'play': {
+                    case 'play':
                         const id = interaction.options.get('query')?.value
 
-                        console.log(id)
-
                         const metadata = await getVideoMetadata(String(id))
-
-                        console.log(metadata)
 
                         player.enqueue(metadata)
 
                         player.start()
-                    }
+
+                        break
 
                     case 'skip':
                         player.skip()
+                        break
 
                     default:
                         interaction.reply('Unsupported command :(')
+                        break
                 }
             } else if (interaction.isAutocomplete()) {
                 this.getOptionsFromQuery(interaction)

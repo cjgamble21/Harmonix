@@ -10,7 +10,3 @@ export const playCommand = new SlashCommandBuilder()
             .setRequired(true)
             .setAutocomplete(true)
     )
-
-export const skipCommand = new SlashCommandBuilder()
-    .setName('skip')
-    .setDescription('Skip the song next up in the queue')

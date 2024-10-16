@@ -71,17 +71,17 @@ export class MusicPlayer {
 
     public enqueue(...metadata: VideoMetadata[]) {
         this.queue.push(...metadata)
-        metadata.forEach(({ title }) =>
-            sendChatMessage(this.interaction, `Added ${title} to the queue!`)
-        )
+        // metadata.forEach(({ title }) =>
+        //     sendChatMessage(this.interaction, `Added ${title} to the queue!`)
+        // )
     }
 
     public dequeue(...metadata: VideoMetadata[]) {
         this.queue.dequeue(metadata, ({ id }) => id)
 
-        metadata.forEach(({ title }) =>
-            sendChatMessage(this.interaction, `Remove ${title} from the queue!`)
-        )
+        // metadata.forEach(({ title }) =>
+        //     sendChatMessage(this.interaction, `Remove ${title} from the queue!`)
+        // )
     }
 
     public onBuffering(
@@ -89,10 +89,10 @@ export class MusicPlayer {
         newState: AudioPlayerBufferingState
     ) {
         Logger.event('Audio Player Buffering...')
-        sendEphemeralChatMessage(
-            this.interaction,
-            'Attempting to play your song, please wait...'
-        )
+        // sendEphemeralChatMessage(
+        //     this.interaction,
+        //     'Attempting to play your song, please wait...'
+        // )
     }
 
     public onIdle(oldState: AudioPlayerState, newState: AudioPlayerIdleState) {
@@ -100,6 +100,8 @@ export class MusicPlayer {
         Logger.event('Audio Player Idling...')
 
         this.destructor()
+
+        this.start()
     }
 
     public onPause(
@@ -121,14 +123,16 @@ export class MusicPlayer {
             `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
         )
 
-        this.joinVoiceChannel().then(() =>
-            this.connection?.subscribe(this.player)
-        )
+        this.joinVoiceChannel()
 
-        sendChatMessage(
-            this.interaction,
-            `Playing ${this.currentSong.title} (${formatMillisecondsToMinutesAndSeconds(newState.playbackDuration)})`
-        )
+        if (this.connection) {
+            this.subscription = this.connection.subscribe(this.player)
+        }
+
+        // sendChatMessage(
+        //     this.interaction,
+        //     `Playing ${this.currentSong.title} (${formatMillisecondsToMinutesAndSeconds(newState.playbackDuration)})`
+        // )
     }
 
     private registerLifecycleMethods() {
@@ -158,6 +162,11 @@ export class MusicPlayer {
             guildId: guild.id,
             adapterCreator:
                 guild.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator, // Annoying but needed after update to discord voice
+        })
+
+        this.connection.on('error', (error) => {
+            Logger.error('Voice connection error: ', error.message)
+            this.connection?.disconnect()
         })
     }
 
@@ -195,7 +204,6 @@ export class MusicPlayer {
                 */
             highWaterMark: 1 << 25,
         })
-
         return createAudioResource(songStream)
     }
 }

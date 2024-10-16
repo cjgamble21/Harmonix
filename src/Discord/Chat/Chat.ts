@@ -1,19 +1,29 @@
 import { Interaction } from 'discord.js'
 
-export const sendChatMessage = (
+export const sendChatMessage = async (
     interaction: Interaction,
-    ...messages: string[]
+    message: string
 ) => {
     if (!interaction.isRepliable()) return
 
-    messages.forEach(interaction.reply)
+    const repliableMessage = !interaction.replied && !interaction.deferred
+
+    repliableMessage
+        ? interaction.reply(message)
+        : interaction.followUp(message)
 }
 
 export const sendEphemeralChatMessage = (
     interaction: Interaction,
-    ...messages: string[]
+    message: string
 ) => {
     if (!interaction.isRepliable()) return
 
-    messages.forEach((message) => interaction.reply({ ephemeral: true }))
+    const content = (message: string) => ({ content: message, ephemeral: true })
+
+    const repliableMessage = !interaction.replied && !interaction.deferred
+
+    repliableMessage
+        ? interaction.reply(content(message))
+        : interaction.followUp(content(message))
 }

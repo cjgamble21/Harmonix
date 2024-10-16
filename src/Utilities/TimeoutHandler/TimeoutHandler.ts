@@ -11,7 +11,7 @@ export class TimeoutHandler {
     }
 
     clearTimeout() {
-        if (!this.timeout) return null
+        if (!this.timeout) return
         clearTimeout(this.timeout)
     }
 }
