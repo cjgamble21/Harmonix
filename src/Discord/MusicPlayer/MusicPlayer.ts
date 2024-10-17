@@ -24,6 +24,7 @@ import { sendChatMessage, sendEphemeralChatMessage } from '../Chat'
 import { formatMillisecondsToMinutesAndSeconds } from '../../Utilities'
 
 export class MusicPlayer {
+    static instance: MusicPlayer
     queue: Queue<VideoMetadata>
     player: AudioPlayer
     interaction: Interaction
@@ -31,11 +32,21 @@ export class MusicPlayer {
     currentSong: VideoMetadata | null = null
     connection: VoiceConnection | null = null
     subscription: PlayerSubscription | null = null
+    isPlaying: boolean = false
 
-    constructor(interaction: Interaction, timeout = 20_000) {
+    public static getInstance(interaction: Interaction) {
+        if (!MusicPlayer.instance) {
+            return new MusicPlayer(interaction)
+        }
+
+        return MusicPlayer.instance
+    }
+
+    private constructor(interaction: Interaction, timeout = 20_000) {
+        this.interaction = interaction
+
         this.queue = new Queue()
         this.player = createAudioPlayer()
-        this.interaction = interaction
         this.timeoutHandler = new TimeoutHandler(timeout)
 
         this.registerLifecycleMethods()
@@ -57,6 +68,7 @@ export class MusicPlayer {
     }
 
     public stop() {
+        this.isPlaying = false
         this.player.stop()
     }
 
@@ -71,17 +83,24 @@ export class MusicPlayer {
 
     public enqueue(...metadata: VideoMetadata[]) {
         this.queue.push(...metadata)
-        // metadata.forEach(({ title }) =>
-        //     sendChatMessage(this.interaction, `Added ${title} to the queue!`)
-        // )
+        metadata.forEach(({ title }) =>
+            sendChatMessage(this.interaction, `Added ${title} to the queue!`)
+        )
+
+        if (!this.isPlaying) {
+            this.start()
+        }
     }
 
     public dequeue(...metadata: VideoMetadata[]) {
         this.queue.dequeue(metadata, ({ id }) => id)
 
-        // metadata.forEach(({ title }) =>
-        //     sendChatMessage(this.interaction, `Remove ${title} from the queue!`)
-        // )
+        metadata.forEach(({ title }) =>
+            sendChatMessage(
+                this.interaction,
+                `Removed ${title} from the queue!`
+            )
+        )
     }
 
     public onBuffering(
@@ -97,6 +116,7 @@ export class MusicPlayer {
 
     public onIdle(oldState: AudioPlayerState, newState: AudioPlayerIdleState) {
         this.currentSong = null
+        this.isPlaying = false
         Logger.event('Audio Player Idling...')
 
         this.destructor()
@@ -108,6 +128,7 @@ export class MusicPlayer {
         oldState: AudioPlayerState,
         newState: AudioPlayerPausedState
     ) {
+        this.isPlaying = false
         Logger.event('Audio Player Paused...')
     }
 
@@ -117,22 +138,22 @@ export class MusicPlayer {
     ) {
         if (!this.currentSong) return
 
+        this.isPlaying = true
+
         this.clearDestructor()
 
         Logger.event(
             `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
         )
 
-        this.joinVoiceChannel()
+        this.joinVoiceChannel().then(() =>
+            this.connection?.subscribe(this.player)
+        )
 
-        if (this.connection) {
-            this.subscription = this.connection.subscribe(this.player)
-        }
-
-        // sendChatMessage(
-        //     this.interaction,
-        //     `Playing ${this.currentSong.title} (${formatMillisecondsToMinutesAndSeconds(newState.playbackDuration)})`
-        // )
+        sendChatMessage(
+            this.interaction,
+            `Playing ${this.currentSong.title} (${formatMillisecondsToMinutesAndSeconds(newState.playbackDuration)})`
+        )
     }
 
     private registerLifecycleMethods() {
@@ -182,11 +203,10 @@ export class MusicPlayer {
 
     private destructor() {
         this.timeoutHandler.beginTimeout(() => {
-            if (!this.connection || !this.subscription || this.currentSong)
-                return
+            if (this.currentSong) return
 
-            this.connection.disconnect()
-            this.subscription.unsubscribe()
+            this.connection?.disconnect()
+            this.subscription?.unsubscribe()
         })
     }
 

@@ -16,7 +16,6 @@ export class Queue<T> {
     }
 
     public pop(): T | null {
-        console.log(this.isEmpty(), this.container)
         if (this.isEmpty()) return null
 
         return this.container.pop() as T

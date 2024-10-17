@@ -15,10 +15,12 @@ export class DiscordClient {
     botId: string
     botToken: string
     client: Client
+    musicPlayerMap: Map<string, MusicPlayer>
 
     constructor() {
         this.botId = process.env.DISCORD_BOT_ID ?? ''
         this.botToken = process.env.DISCORD_BOT_TOKEN ?? ''
+        this.musicPlayerMap = new Map()
 
         this.client = new Client({
             intents: [
@@ -51,12 +53,29 @@ export class DiscordClient {
         )
     }
 
+    private getOrCreateMusicPlayer(interaction: Interaction) {
+        const guildId = interaction.guildId
+
+        if (!guildId) {
+            throw new Error('Interaction is not in a guild.')
+        }
+
+        // Check if a MusicPlayer already exists for the guild
+        let player = this.musicPlayerMap.get(guildId)
+
+        if (!player) {
+            // If no player exists, create one and store it in the map
+            player = MusicPlayer.getInstance(interaction)
+            this.musicPlayerMap.set(guildId, player)
+        }
+
+        return player
+    }
+
     addInteractionListener() {
         this.client.on(Events.InteractionCreate, async (interaction) => {
-            const player = new MusicPlayer(interaction)
-
             if (interaction.isCommand()) {
-                console.log(interaction.commandName)
+                const player = this.getOrCreateMusicPlayer(interaction)
                 switch (interaction.commandName) {
                     case 'play':
                         const id = interaction.options.get('query')?.value
@@ -64,8 +83,6 @@ export class DiscordClient {
                         const metadata = await getVideoMetadata(String(id))
 
                         player.enqueue(metadata)
-
-                        player.start()
 
                         break
 
