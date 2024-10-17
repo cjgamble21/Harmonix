@@ -24,26 +24,23 @@ import { sendChatMessage, sendEphemeralChatMessage } from '../Chat'
 import { formatMillisecondsToMinutesAndSeconds } from '../../Utilities'
 
 export class MusicPlayer {
-    static instance: MusicPlayer
     queue: Queue<VideoMetadata>
     player: AudioPlayer
-    interaction: Interaction
     timeoutHandler: TimeoutHandler
     currentSong: VideoMetadata | null = null
     connection: VoiceConnection | null = null
     subscription: PlayerSubscription | null = null
     isPlaying: boolean = false
+    onPlay: (user: string, player: AudioPlayer) => void
+    onFinish: () => void
 
-    public static getInstance(interaction: Interaction) {
-        if (!MusicPlayer.instance) {
-            return new MusicPlayer(interaction)
-        }
-
-        return MusicPlayer.instance
-    }
-
-    private constructor(interaction: Interaction, timeout = 20_000) {
-        this.interaction = interaction
+    constructor(
+        onPlay: (user: string, player: AudioPlayer) => void,
+        onFinish: () => void,
+        timeout = 20_000
+    ) {
+        this.onPlay = onPlay
+        this.onFinish = onFinish
 
         this.queue = new Queue()
         this.player = createAudioPlayer()
@@ -83,9 +80,6 @@ export class MusicPlayer {
 
     public enqueue(...metadata: VideoMetadata[]) {
         this.queue.push(...metadata)
-        metadata.forEach(({ title }) =>
-            sendChatMessage(this.interaction, `Added ${title} to the queue!`)
-        )
 
         if (!this.isPlaying) {
             this.start()
@@ -94,13 +88,6 @@ export class MusicPlayer {
 
     public dequeue(...metadata: VideoMetadata[]) {
         this.queue.dequeue(metadata, ({ id }) => id)
-
-        metadata.forEach(({ title }) =>
-            sendChatMessage(
-                this.interaction,
-                `Removed ${title} from the queue!`
-            )
-        )
     }
 
     public onBuffering(
@@ -114,7 +101,10 @@ export class MusicPlayer {
         // )
     }
 
-    public onIdle(oldState: AudioPlayerState, newState: AudioPlayerIdleState) {
+    public onIdling(
+        oldState: AudioPlayerState,
+        newState: AudioPlayerIdleState
+    ) {
         this.currentSong = null
         this.isPlaying = false
         Logger.event('Audio Player Idling...')
@@ -124,7 +114,7 @@ export class MusicPlayer {
         this.start()
     }
 
-    public onPause(
+    public onPaused(
         oldState: AudioPlayerState,
         newState: AudioPlayerPausedState
     ) {
@@ -132,7 +122,7 @@ export class MusicPlayer {
         Logger.event('Audio Player Paused...')
     }
 
-    public onPlay(
+    public onPlaying(
         oldState: AudioPlayerState,
         newState: AudioPlayerPlayingState
     ) {
@@ -140,20 +130,17 @@ export class MusicPlayer {
 
         this.isPlaying = true
 
-        this.clearDestructor()
+        this.onPlay()
 
-        Logger.event(
-            `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
-        )
+        // this.clearDestructor()
 
-        this.joinVoiceChannel().then(() =>
-            this.connection?.subscribe(this.player)
-        )
+        // Logger.event(
+        //     `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
+        // )
 
-        sendChatMessage(
-            this.interaction,
-            `Playing ${this.currentSong.title} (${formatMillisecondsToMinutesAndSeconds(newState.playbackDuration)})`
-        )
+        // this.joinVoiceChannel().then(() =>
+        //     this.connection?.subscribe(this.player)
+        // )
     }
 
     private registerLifecycleMethods() {
@@ -161,57 +148,6 @@ export class MusicPlayer {
         this.player.on(AudioPlayerStatus.Buffering, this.onBuffering.bind(this))
         this.player.on(AudioPlayerStatus.Paused, this.onPause.bind(this))
         this.player.on(AudioPlayerStatus.Playing, this.onPlay.bind(this))
-    }
-
-    private async joinVoiceChannel() {
-        const { guild } = this.interaction
-
-        if (!guild) {
-            Logger.warn('Attempted to join voice channel with no guild')
-            return
-        }
-
-        const voiceChannelId = await this.getVoiceChannelFromInteraction()
-
-        if (!voiceChannelId) {
-            Logger.warn('Unable to extract voice channel ID from interaction')
-            return
-        }
-
-        this.connection = joinVoiceChannel({
-            channelId: voiceChannelId,
-            guildId: guild.id,
-            adapterCreator:
-                guild.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator, // Annoying but needed after update to discord voice
-        })
-
-        this.connection.on('error', (error) => {
-            Logger.error('Voice connection error: ', error.message)
-            this.connection?.disconnect()
-        })
-    }
-
-    private getVoiceChannelFromInteraction() {
-        const { guild, user } = this.interaction
-        return guild?.members
-            .fetch(user.id)
-            .then((member) => member.voice.channelId)
-            .catch((err) => {
-                Logger.error(`Error while fetching current channel ID: ${err}`)
-            })
-    }
-
-    private destructor() {
-        this.timeoutHandler.beginTimeout(() => {
-            if (this.currentSong) return
-
-            this.connection?.disconnect()
-            this.subscription?.unsubscribe()
-        })
-    }
-
-    private clearDestructor() {
-        this.timeoutHandler.clearTimeout()
     }
 
     private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {

@@ -11,17 +11,18 @@ import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 import { MusicPlayer } from './MusicPlayer'
 import { decode } from 'html-entities'
+import { ServerContext } from './ServerContext'
 
 export class DiscordClient {
     private botId: string
     private botToken: string
-    private musicPlayerMap: Map<string, MusicPlayer>
+    private serverContexts: Map<string, ServerContext>
     private client: Client
 
     constructor() {
         this.botId = process.env.DISCORD_BOT_ID ?? ''
         this.botToken = process.env.DISCORD_BOT_TOKEN ?? ''
-        this.musicPlayerMap = new Map()
+        this.serverContexts = new Map()
 
         this.client = new Client({
             intents: [
@@ -52,17 +53,20 @@ export class DiscordClient {
     }
 
     private onInteractionCreate(interaction: Interaction) {
+        const serverContext = this.getServerContext(interaction)
+
         if (interaction.isCommand()) {
-            const player = this.getOrCreateMusicPlayer(interaction)
             switch (interaction.commandName) {
                 case 'play':
                     const id = interaction.options.get('query')?.value
+                    getVideoMetadata(String(id)).then((metadata) =>
+                        serverContext.queueSong(metadata, interaction.user.id)
+                    )
 
-                    getVideoMetadata(String(id)).then(player.enqueue)
                     break
 
                 case 'skip':
-                    player.skip()
+                    serverContext.skipSong()
                     break
 
                 default:
@@ -87,22 +91,23 @@ export class DiscordClient {
         )
     }
 
-    private getOrCreateMusicPlayer(interaction: Interaction) {
-        const guildId = interaction.guildId
+    private getServerContext(interaction: Interaction): ServerContext {
+        const { guildId } = interaction
 
         if (!guildId) {
-            throw new Error('Interaction is not in a guild.')
+            Logger.error('Interaction with no guild ID!')
+            throw new Error("Can't create server context without guild ID")
         }
 
-        let player = this.musicPlayerMap.get(guildId)
+        let serverContext = this.serverContexts.get(guildId)
 
-        if (!player) {
-            player = MusicPlayer.getInstance(interaction)
-            this.musicPlayerMap.set(guildId, player)
+        if (!serverContext) {
+            serverContext = new ServerContext(interaction.guild, () => {})
+            this.serverContexts.set(guildId, serverContext)
         }
 
-        player.interaction = interaction
+        serverContext.updateMostRecentTextChannel(interaction.channelId ?? '')
 
-        return player
+        return serverContext
     }
 }
