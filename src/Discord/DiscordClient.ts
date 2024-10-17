@@ -10,12 +10,13 @@ import { getVideoMetadata, queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 import { MusicPlayer } from './MusicPlayer'
+import { decode } from 'html-entities'
 
 export class DiscordClient {
-    botId: string
-    botToken: string
-    client: Client
-    musicPlayerMap: Map<string, MusicPlayer>
+    private botId: string
+    private botToken: string
+    private musicPlayerMap: Map<string, MusicPlayer>
+    private client: Client
 
     constructor() {
         this.botId = process.env.DISCORD_BOT_ID ?? ''
@@ -34,10 +35,43 @@ export class DiscordClient {
 
         this.client.login(this.botToken)
 
-        this.client.on('ready', () => {
-            Logger.event('Discord Client Initialized')
-            deployCommands()
-        })
+        this.registerLifecycleMethods()
+    }
+
+    private registerLifecycleMethods() {
+        this.client.on(Events.ClientReady, this.onClientReady.bind(this))
+        this.client.on(
+            Events.InteractionCreate,
+            this.onInteractionCreate.bind(this)
+        )
+    }
+
+    private async onClientReady() {
+        Logger.event('Discord Client Initialized')
+        deployCommands()
+    }
+
+    private onInteractionCreate(interaction: Interaction) {
+        if (interaction.isCommand()) {
+            const player = this.getOrCreateMusicPlayer(interaction)
+            switch (interaction.commandName) {
+                case 'play':
+                    const id = interaction.options.get('query')?.value
+
+                    getVideoMetadata(String(id)).then(player.enqueue)
+                    break
+
+                case 'skip':
+                    player.skip()
+                    break
+
+                default:
+                    interaction.reply('Unsupported command :(')
+                    break
+            }
+        } else if (interaction.isAutocomplete()) {
+            this.getOptionsFromQuery(interaction)
+        }
     }
 
     private async getOptionsFromQuery(interaction: AutocompleteInteraction) {
@@ -47,7 +81,7 @@ export class DiscordClient {
 
         return interaction.respond(
             results.map(({ title, id }) => ({
-                name: title.slice(0, 100),
+                name: decode(title.slice(0, 100)),
                 value: id,
             }))
         )
@@ -60,43 +94,15 @@ export class DiscordClient {
             throw new Error('Interaction is not in a guild.')
         }
 
-        // Check if a MusicPlayer already exists for the guild
         let player = this.musicPlayerMap.get(guildId)
 
         if (!player) {
-            // If no player exists, create one and store it in the map
             player = MusicPlayer.getInstance(interaction)
             this.musicPlayerMap.set(guildId, player)
         }
 
+        player.interaction = interaction
+
         return player
-    }
-
-    addInteractionListener() {
-        this.client.on(Events.InteractionCreate, async (interaction) => {
-            if (interaction.isCommand()) {
-                const player = this.getOrCreateMusicPlayer(interaction)
-                switch (interaction.commandName) {
-                    case 'play':
-                        const id = interaction.options.get('query')?.value
-
-                        const metadata = await getVideoMetadata(String(id))
-
-                        player.enqueue(metadata)
-
-                        break
-
-                    case 'skip':
-                        player.skip()
-                        break
-
-                    default:
-                        interaction.reply('Unsupported command :(')
-                        break
-                }
-            } else if (interaction.isAutocomplete()) {
-                this.getOptionsFromQuery(interaction)
-            }
-        })
     }
 }

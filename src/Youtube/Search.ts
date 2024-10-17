@@ -42,12 +42,12 @@ export const getVideoMetadata = debounce(
                 key: apiKey,
                 id,
             },
-        }).then(
-            (res) =>
-                res.data.items.map((item: any) => ({
-                    id,
-                    title: item.snippet.title,
-                    description: item.snippet.description,
-                }))[0]
-        )
+        }).then((res) => {
+            console.log(res)
+            return res.data.items.map((item: any) => ({
+                id,
+                title: item.snippet.title,
+                description: item.snippet.description,
+            }))
+        })
 )
