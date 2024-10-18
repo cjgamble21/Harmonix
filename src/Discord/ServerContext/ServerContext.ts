@@ -20,14 +20,14 @@ export class ServerContext {
         this.guild = guild
         this.sendChatMessage = sendChatMessage
         this.player = new MusicPlayer(
-            this.onPlay.bind(this),
-            this.onFinish.bind(this)
+            this.onMusicPlayerBegin.bind(this),
+            this.onMusicPlayerFinish.bind(this)
         )
         Logger.event(`Initialized context for server ${this.guild.id}`)
     }
 
     public queueSong(song: VideoMetadata, user: string) {
-        this.player.enqueue(song)
+        this.player.enqueue(user, song)
         this.sendChatMessage(`Added ${song.title} to the queue!`)
         Logger.event(`Queued ${song.title} in server ${this.guild.id}`)
     }
@@ -65,7 +65,7 @@ export class ServerContext {
         })
     }
 
-    private onPlay(user: string, player: AudioPlayer) {
+    private onMusicPlayerBegin(user: string, player: AudioPlayer) {
         this.getVoiceChannelFromUserId(user).then((channelId) => {
             if (!channelId) return
 
@@ -75,7 +75,14 @@ export class ServerContext {
         })
     }
 
-    private onFinish() {}
+    private onMusicPlayerFinish() {
+        Logger.event('Music player finished')
+
+        setTimeout(() => {
+            Logger.event('Disconnecting from voice channel')
+            this.connection?.disconnect()
+        }, 20_000)
+    }
 
     private getVoiceChannelFromUserId(user: string) {
         return this.guild?.members

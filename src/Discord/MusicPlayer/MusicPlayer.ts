@@ -6,66 +6,41 @@ import {
     AudioPlayerPlayingState,
     AudioPlayerState,
     AudioPlayerStatus,
-    AudioResource,
-    DiscordGatewayAdapterCreator,
-    PlayerSubscription,
-    VoiceConnection,
     createAudioPlayer,
     createAudioResource,
-    joinVoiceChannel,
 } from '@discordjs/voice'
 import { Queue } from '../../Queue'
 import { VideoMetadata } from '../../Youtube/types/SearchResult.type'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../Logger'
-import { Interaction } from 'discord.js'
-import { TimeoutHandler } from '../../Utilities/TimeoutHandler'
-import { sendChatMessage, sendEphemeralChatMessage } from '../Chat'
-import { formatMillisecondsToMinutesAndSeconds } from '../../Utilities'
+
+type QueuedMusic = VideoMetadata & { user: string }
 
 export class MusicPlayer {
-    queue: Queue<VideoMetadata>
+    queue: Queue<QueuedMusic>
+    songProcessor: Generator
     player: AudioPlayer
-    timeoutHandler: TimeoutHandler
-    currentSong: VideoMetadata | null = null
-    connection: VoiceConnection | null = null
-    subscription: PlayerSubscription | null = null
+    currentSong: QueuedMusic | null = null
     isPlaying: boolean = false
     onPlay: (user: string, player: AudioPlayer) => void
     onFinish: () => void
 
     constructor(
         onPlay: (user: string, player: AudioPlayer) => void,
-        onFinish: () => void,
-        timeout = 20_000
+        onFinish: () => void
     ) {
         this.onPlay = onPlay
         this.onFinish = onFinish
 
         this.queue = new Queue()
         this.player = createAudioPlayer()
-        this.timeoutHandler = new TimeoutHandler(timeout)
 
         this.registerLifecycleMethods()
-    }
 
-    public start() {
-        const metadata = this.queue.pop()
-
-        if (!metadata) {
-            Logger.warn('Attempted to start music player with empty queue')
-            return
-        }
-
-        this.currentSong = metadata
-
-        const song = MusicPlayer.getSongStreamFromVideoMetadata(metadata)
-
-        this.player.play(song)
+        this.songProcessor = this.startSongProcessor()
     }
 
     public stop() {
-        this.isPlaying = false
         this.player.stop()
     }
 
@@ -75,19 +50,13 @@ export class MusicPlayer {
 
     public skip() {
         this.player.stop()
-        this.start()
+        this.songProcessor.next()
     }
 
-    public enqueue(...metadata: VideoMetadata[]) {
-        this.queue.push(...metadata)
+    public enqueue(user: string, ...metadata: VideoMetadata[]) {
+        this.queue.push(...metadata.map((song) => ({ user, ...song })))
 
-        if (!this.isPlaying) {
-            this.start()
-        }
-    }
-
-    public dequeue(...metadata: VideoMetadata[]) {
-        this.queue.dequeue(metadata, ({ id }) => id)
+        if (!this.isPlaying) this.songProcessor.next()
     }
 
     public onBuffering(
@@ -95,10 +64,6 @@ export class MusicPlayer {
         newState: AudioPlayerBufferingState
     ) {
         Logger.event('Audio Player Buffering...')
-        // sendEphemeralChatMessage(
-        //     this.interaction,
-        //     'Attempting to play your song, please wait...'
-        // )
     }
 
     public onIdling(
@@ -106,19 +71,14 @@ export class MusicPlayer {
         newState: AudioPlayerIdleState
     ) {
         this.currentSong = null
-        this.isPlaying = false
         Logger.event('Audio Player Idling...')
-
-        this.destructor()
-
-        this.start()
+        this.songProcessor.next()
     }
 
     public onPaused(
         oldState: AudioPlayerState,
         newState: AudioPlayerPausedState
     ) {
-        this.isPlaying = false
         Logger.event('Audio Player Paused...')
     }
 
@@ -130,24 +90,18 @@ export class MusicPlayer {
 
         this.isPlaying = true
 
-        this.onPlay()
+        this.onPlay(this.currentSong.user, this.player)
 
-        // this.clearDestructor()
-
-        // Logger.event(
-        //     `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
-        // )
-
-        // this.joinVoiceChannel().then(() =>
-        //     this.connection?.subscribe(this.player)
-        // )
+        Logger.event(
+            `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
+        )
     }
 
     private registerLifecycleMethods() {
-        this.player.on(AudioPlayerStatus.Idle, this.onIdle.bind(this))
+        this.player.on(AudioPlayerStatus.Idle, this.onIdling.bind(this))
         this.player.on(AudioPlayerStatus.Buffering, this.onBuffering.bind(this))
-        this.player.on(AudioPlayerStatus.Paused, this.onPause.bind(this))
-        this.player.on(AudioPlayerStatus.Playing, this.onPlay.bind(this))
+        this.player.on(AudioPlayerStatus.Paused, this.onPaused.bind(this))
+        this.player.on(AudioPlayerStatus.Playing, this.onPlaying.bind(this))
     }
 
     private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {
@@ -161,5 +115,23 @@ export class MusicPlayer {
             highWaterMark: 1 << 25,
         })
         return createAudioResource(songStream)
+    }
+
+    private *startSongProcessor() {
+        while (true) {
+            if (this.queue.isEmpty()) {
+                yield
+            } else {
+                const song = this.queue.pop() as QueuedMusic
+                this.currentSong = song
+
+                const songStream =
+                    MusicPlayer.getSongStreamFromVideoMetadata(song)
+
+                this.player.play(songStream)
+
+                yield
+            }
+        }
     }
 }

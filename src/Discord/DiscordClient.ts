@@ -1,6 +1,5 @@
 import {
     AutocompleteInteraction,
-    CacheType,
     Client,
     Events,
     IntentsBitField,
@@ -9,11 +8,10 @@ import {
 import { getVideoMetadata, queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
-import { MusicPlayer } from './MusicPlayer'
 import { decode } from 'html-entities'
 import { ServerContext } from './ServerContext'
 
-export class DiscordClient {
+class DiscordClient {
     private botId: string
     private botToken: string
     private serverContexts: Map<string, ServerContext>
@@ -78,6 +76,26 @@ export class DiscordClient {
         }
     }
 
+    private getServerContext(interaction: Interaction): ServerContext {
+        const { guildId, guild } = interaction
+
+        if (!guildId || !guild) {
+            Logger.error('Interaction with no guild!')
+            throw new Error("Can't create server context without a guild")
+        }
+
+        let serverContext = this.serverContexts.get(guildId)
+
+        if (!serverContext) {
+            serverContext = new ServerContext(guild, () => {})
+            this.serverContexts.set(guildId, serverContext)
+        }
+
+        serverContext.updateMostRecentTextChannel(interaction.channelId ?? '')
+
+        return serverContext
+    }
+
     private async getOptionsFromQuery(interaction: AutocompleteInteraction) {
         const query = interaction.options.get('query')?.value
 
@@ -90,24 +108,6 @@ export class DiscordClient {
             }))
         )
     }
-
-    private getServerContext(interaction: Interaction): ServerContext {
-        const { guildId } = interaction
-
-        if (!guildId) {
-            Logger.error('Interaction with no guild ID!')
-            throw new Error("Can't create server context without guild ID")
-        }
-
-        let serverContext = this.serverContexts.get(guildId)
-
-        if (!serverContext) {
-            serverContext = new ServerContext(interaction.guild, () => {})
-            this.serverContexts.set(guildId, serverContext)
-        }
-
-        serverContext.updateMostRecentTextChannel(interaction.channelId ?? '')
-
-        return serverContext
-    }
 }
+
+export default new DiscordClient()
