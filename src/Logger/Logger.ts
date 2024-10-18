@@ -1,21 +1,28 @@
 export namespace Logger {
-    export function error(invoker: string, ...errors: string[]) {
+    export function error(...errors: string[]) {
         errors
             .map(
-                (error) => `APPLICATION ERROR :: Error in ${invoker} : ${error}`
+                (error) =>
+                    `[${new Date().toISOString()}] :: APPLICATION ERROR :: ${error}`
             )
-            .forEach((error) => console.log(error))
+            .forEach((error) => console.error(error))
     }
 
     export function warn(...warnings: string[]) {
         warnings
-            .map((warning) => `APPLICATION WARNING :: ${warning}`)
-            .forEach((warning) => console.log(warning))
+            .map(
+                (warning) =>
+                    `[${new Date().toISOString()}] :: APPLICATION WARNING :: ${warning}`
+            )
+            .forEach((warning) => console.debug(warning))
     }
 
     export function event(...events: string[]) {
         events
-            .map((event) => `EVENT TRIGGERED :: ${event}`)
+            .map(
+                (event) =>
+                    `[${new Date().toISOString()}] :: EVENT TRIGGERED :: ${event}`
+            )
             .forEach((event) => console.log(event))
     }
 }

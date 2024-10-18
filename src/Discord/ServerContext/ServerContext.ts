@@ -21,6 +21,7 @@ export class ServerContext {
 
         this.player = new MusicPlayer(
             this.onMusicPlayerBegin.bind(this),
+            this.onMusicPlayerSkip.bind(this),
             this.onMusicPlayerFinish.bind(this)
         )
 
@@ -43,7 +44,6 @@ export class ServerContext {
     }
 
     public skipSong() {
-        this.sendChatMessage(`Skipping ${this.player.currentSong?.title}`)
         this.player.skip()
     }
 
@@ -101,6 +101,10 @@ export class ServerContext {
                     Logger.event(`Disconnected from voice channel ${channelId}`)
                 })
         })
+    }
+
+    private onMusicPlayerSkip(message: string) {
+        this.sendChatMessage(message)
     }
 
     private onMusicPlayerFinish() {
