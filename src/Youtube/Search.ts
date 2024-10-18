@@ -9,14 +9,14 @@ import { Logger } from '../Logger'
 import { debounce } from '../Utilities'
 
 const url = process.env.YOUTUBE_URL
-const apiKeys = process.env.YOUTUBE_API_KEYS
+const apiKey = process.env.YOUTUBE_API_KEY
 
-if (!url || !apiKeys) {
+if (!url || !apiKey) {
     Logger.error('Missing Youtube URL / API key')
     throw new Error('Missing env var')
 }
 
-const apiKey = apiKeys.split(';').unshift()
+// const apiKey = apiKeys.split(';').unshift()
 
 const YoutubeAPI = axios.create({
     baseURL: url,
