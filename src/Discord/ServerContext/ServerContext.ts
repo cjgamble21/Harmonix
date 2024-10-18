@@ -13,32 +13,38 @@ export class ServerContext {
     private guild: Guild
     private player: MusicPlayer
     private connection: VoiceConnection | null = null
-    private mostRecentTextChannel: string = ''
-    private sendChatMessage: (message: string) => void
+    private disconnectTimeout: NodeJS.Timeout | null = null
+    private sendChatMessage: (message: string, ephemeral?: boolean) => void
 
-    constructor(guild: Guild, sendChatMessage: (message: string) => void) {
+    constructor(guild: Guild) {
         this.guild = guild
-        this.sendChatMessage = sendChatMessage
+
         this.player = new MusicPlayer(
             this.onMusicPlayerBegin.bind(this),
             this.onMusicPlayerFinish.bind(this)
         )
+
+        this.sendChatMessage = () => {}
+
         Logger.event(`Initialized context for server ${this.guild.id}`)
+    }
+
+    public setChatMessenger(
+        sendChatMessage: (message: string, ephemeral?: boolean) => void
+    ) {
+        this.sendChatMessage = sendChatMessage
     }
 
     public queueSong(song: VideoMetadata, user: string) {
         this.player.enqueue(user, song)
         this.sendChatMessage(`Added ${song.title} to the queue!`)
         Logger.event(`Queued ${song.title} in server ${this.guild.id}`)
+        this.cancelDisconnect()
     }
 
     public skipSong() {
         this.sendChatMessage(`Skipping ${this.player.currentSong?.title}`)
         this.player.skip()
-    }
-
-    public updateMostRecentTextChannel(channel: string) {
-        this.mostRecentTextChannel = channel
     }
 
     private joinVoiceChannel(channelId: string) {
@@ -65,23 +71,42 @@ export class ServerContext {
         })
     }
 
-    private onMusicPlayerBegin(user: string, player: AudioPlayer) {
+    private disconnectFromVoiceChannel() {
+        const timeout = 20_000
+        Logger.event(`Disconnecting from voice channel in ${timeout}`)
+        this.disconnectTimeout = setTimeout(
+            () => this.connection?.disconnect(),
+            timeout
+        )
+    }
+
+    private cancelDisconnect() {
+        if (!this.disconnectTimeout) return
+
+        clearTimeout(this.disconnectTimeout)
+    }
+
+    private onMusicPlayerBegin(
+        user: string,
+        player: AudioPlayer,
+        message: string
+    ) {
+        this.sendChatMessage(message)
         this.getVoiceChannelFromUserId(user).then((channelId) => {
             if (!channelId) return
 
-            this.joinVoiceChannel(channelId).then(() =>
-                this.connection?.subscribe(player)
-            )
+            this.joinVoiceChannel(channelId)
+                .then(() => this.connection?.subscribe(player))
+                .catch(() => {
+                    Logger.event(`Disconnected from voice channel ${channelId}`)
+                })
         })
     }
 
     private onMusicPlayerFinish() {
         Logger.event('Music player finished')
 
-        setTimeout(() => {
-            Logger.event('Disconnecting from voice channel')
-            this.connection?.disconnect()
-        }, 20_000)
+        this.disconnectFromVoiceChannel()
     }
 
     private getVoiceChannelFromUserId(user: string) {

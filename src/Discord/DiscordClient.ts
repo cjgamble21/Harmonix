@@ -2,6 +2,7 @@ import {
     AutocompleteInteraction,
     Client,
     Events,
+    Guild,
     IntentsBitField,
     Interaction,
 } from 'discord.js'
@@ -87,11 +88,13 @@ class DiscordClient {
         let serverContext = this.serverContexts.get(guildId)
 
         if (!serverContext) {
-            serverContext = new ServerContext(guild, () => {})
+            serverContext = new ServerContext(guild)
             this.serverContexts.set(guildId, serverContext)
         }
 
-        serverContext.updateMostRecentTextChannel(interaction.channelId ?? '')
+        serverContext.setChatMessenger(
+            this.getChatMessenger(interaction, guild)
+        )
 
         return serverContext
     }
@@ -107,6 +110,30 @@ class DiscordClient {
                 value: id,
             }))
         )
+    }
+
+    private getChatMessenger(interaction: Interaction, guild: Guild) {
+        /* 
+            My hope is that the interaction will be saved in the closure, 
+            thus storing the "last interacted with channel" for sending generic messages
+        */
+        if (!interaction.isRepliable()) return () => {}
+
+        return (message: string) => {
+            if (!interaction.replied) {
+                interaction.reply(message)
+            } else {
+                const { channelId } = interaction
+                if (!channelId) return
+
+                const channel = guild.channels.cache.get(channelId)
+
+                if (!channel || !channel.isTextBased() || !channel.isSendable())
+                    return
+
+                channel.send(message)
+            }
+        }
     }
 }
 

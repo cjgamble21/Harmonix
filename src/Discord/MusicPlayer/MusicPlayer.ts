@@ -10,11 +10,11 @@ import {
     createAudioResource,
 } from '@discordjs/voice'
 import { Queue } from '../../Queue'
-import { VideoMetadata } from '../../Youtube/types/SearchResult.type'
+import { VideoMetadata } from '../../Youtube/types'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../Logger'
 
-type QueuedMusic = VideoMetadata & { user: string }
+export type QueuedMusic = VideoMetadata & { user: string }
 
 export class MusicPlayer {
     queue: Queue<QueuedMusic>
@@ -22,11 +22,11 @@ export class MusicPlayer {
     player: AudioPlayer
     currentSong: QueuedMusic | null = null
     isPlaying: boolean = false
-    onPlay: (user: string, player: AudioPlayer) => void
+    onPlay: (user: string, player: AudioPlayer, message: string) => void
     onFinish: () => void
 
     constructor(
-        onPlay: (user: string, player: AudioPlayer) => void,
+        onPlay: (user: string, player: AudioPlayer, message: string) => void,
         onFinish: () => void
     ) {
         this.onPlay = onPlay
@@ -56,7 +56,14 @@ export class MusicPlayer {
     public enqueue(user: string, ...metadata: VideoMetadata[]) {
         this.queue.push(...metadata.map((song) => ({ user, ...song })))
 
-        if (!this.isPlaying) this.songProcessor.next()
+        if (this.isPlaying) return
+
+        const { done } = this.songProcessor.next()
+
+        if (!done) return
+
+        this.songProcessor = this.startSongProcessor()
+        this.songProcessor.next()
     }
 
     public onBuffering(
@@ -72,7 +79,9 @@ export class MusicPlayer {
     ) {
         this.currentSong = null
         Logger.event('Audio Player Idling...')
-        this.songProcessor.next()
+        const { done } = this.songProcessor.next()
+
+        if (done) this.onFinish()
     }
 
     public onPaused(
@@ -86,14 +95,19 @@ export class MusicPlayer {
         oldState: AudioPlayerState,
         newState: AudioPlayerPlayingState
     ) {
-        if (!this.currentSong) return
+        if (!this.currentSong || oldState.status === AudioPlayerStatus.Playing)
+            return
 
         this.isPlaying = true
 
-        this.onPlay(this.currentSong.user, this.player)
+        this.onPlay(
+            this.currentSong.user,
+            this.player,
+            `Playing ${this.currentSong.title} (${this.currentSong.duration})`
+        )
 
         Logger.event(
-            `Audio Player Playing ${this.currentSong.title}, length ${newState.playbackDuration}`
+            `Audio Player Playing ${this.currentSong.title}, length ${this.currentSong.duration}`
         )
     }
 
@@ -120,7 +134,7 @@ export class MusicPlayer {
     private *startSongProcessor() {
         while (true) {
             if (this.queue.isEmpty()) {
-                yield
+                return
             } else {
                 const song = this.queue.pop() as QueuedMusic
                 this.currentSong = song

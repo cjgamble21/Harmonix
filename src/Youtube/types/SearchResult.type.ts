@@ -58,9 +58,3 @@ export interface High {
     width: number
     height: number
 }
-
-export interface VideoMetadata {
-    id: string
-    title: string
-    description: string
-}

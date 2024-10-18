@@ -1,5 +1,10 @@
 import axios from 'axios'
-import { SearchResult, VideoMetadata } from './types'
+import {
+    SearchMetadata,
+    SearchResult,
+    VideoDetails,
+    VideoMetadata,
+} from './types'
 import { Logger } from '../Logger'
 import { debounce } from '../Utilities'
 
@@ -13,10 +18,13 @@ if (!url || !apiKey) {
 
 const YoutubeAPI = axios.create({
     baseURL: url,
+    paramsSerializer: {
+        indexes: null,
+    },
 })
 
 export const queryVideos = debounce(
-    (query: string): Promise<VideoMetadata[]> =>
+    (query: string): Promise<SearchMetadata[]> =>
         YoutubeAPI.get<SearchResult>(`search`, {
             params: {
                 part: 'snippet',
@@ -35,18 +43,31 @@ export const queryVideos = debounce(
 
 export const getVideoMetadata = debounce(
     (id: string): Promise<VideoMetadata> =>
-        YoutubeAPI.get(`videos`, {
+        YoutubeAPI.get<VideoDetails>(`videos`, {
             params: {
-                part: 'snippet',
+                part: ['snippet', 'contentDetails'],
                 type: 'video',
                 key: apiKey,
                 id,
             },
         }).then((res) => {
-            return res.data.items.map((item: any) => ({
-                id,
+            console.log(res.data.items[0])
+            const [toReturn] = res.data.items.map((item) => ({
+                id: item.id,
                 title: item.snippet.title,
                 description: item.snippet.description,
-            }))[0]
+                duration: getTimeFromDuration(item.contentDetails.duration),
+            }))
+
+            return toReturn
         })
 )
+
+const getTimeFromDuration = (duration: string) => {
+    const durationRegex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/
+    return duration
+        .replace(durationRegex, '$1:$2:$3')
+        .split(':')
+        .filter(Boolean)
+        .join(':')
+}
