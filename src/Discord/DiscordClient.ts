@@ -11,7 +11,9 @@ import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 import { decode } from 'html-entities'
 import { ServerContext } from './ServerContext'
+import { SwallowErrors } from '../Utilities'
 
+@SwallowErrors
 class DiscordClient {
     private botId: string
     private botToken: string

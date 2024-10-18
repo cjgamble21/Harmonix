@@ -10,7 +10,7 @@ const rest = new REST().setToken(botToken)
 
 export const deployCommands = () => {
     rest.put(Routes.applicationCommands(botId), {
-        body: Object.values(Commands),
+        body: [Commands.playCommand, Commands.skipCommand],
     })
 }
 
