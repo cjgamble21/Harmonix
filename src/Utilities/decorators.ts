@@ -7,21 +7,24 @@ export const SwallowErrors = <T extends new (...args: any) => InstanceType<T>>(
     if (context.kind !== 'class') return
 
     const methods = Object.getOwnPropertyNames(constructor.prototype).filter(
-        (name) => typeof constructor.prototype[name] === 'function'
+        (name) =>
+            typeof constructor.prototype[name] === 'function' &&
+            name !== 'constructor'
     )
+
+    console.log(methods)
 
     methods.forEach((method) => {
         const originalMethod = constructor.prototype[method]
 
-        constructor.prototype[method] = async <T>(...args: T[]) => {
+        constructor.prototype[method] = async function <T>(...args: T[]) {
             try {
                 const result = await originalMethod.apply(this, ...args)
 
                 return result
-            } catch (err) {
-                Logger.error(
-                    `Critical error occurred in ${method} :: ${Error.captureStackTrace(err as Error)}`
-                )
+            } catch (err: any) {
+                Error.captureStackTrace(err)
+                Logger.error(`Critical error occurred in ${method} :: ${err}`)
             }
         }
     })
