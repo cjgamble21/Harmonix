@@ -3,7 +3,7 @@ export namespace Logger {
         errors
             .map(
                 (error) =>
-                    `[${new Date().toISOString()}] :: APPLICATION ERROR :: ${error}`
+                    `[${new Date().toUTCString()}] :: APPLICATION ERROR :: ${error}`
             )
             .forEach((error) => console.error(error))
     }
@@ -12,7 +12,7 @@ export namespace Logger {
         warnings
             .map(
                 (warning) =>
-                    `[${new Date().toISOString()}] :: APPLICATION WARNING :: ${warning}`
+                    `[${new Date().toUTCString()}] :: APPLICATION WARNING :: ${warning}`
             )
             .forEach((warning) => console.debug(warning))
     }
@@ -21,7 +21,7 @@ export namespace Logger {
         events
             .map(
                 (event) =>
-                    `[${new Date().toISOString()}] :: EVENT TRIGGERED :: ${event}`
+                    `[${new Date().toUTCString()}] :: EVENT TRIGGERED :: ${event}`
             )
             .forEach((event) => console.log(event))
     }
