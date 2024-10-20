@@ -13,7 +13,7 @@ import { decode } from 'html-entities'
 import { ServerContext } from './ServerContext'
 import { SwallowErrors } from '../Utilities'
 
-@SwallowErrors
+// @SwallowErrors
 class DiscordClient {
     private botId: string
     private botToken: string

@@ -12,14 +12,12 @@ export const SwallowErrors = <T extends new (...args: any) => InstanceType<T>>(
             name !== 'constructor'
     )
 
-    console.log(methods)
-
     methods.forEach((method) => {
         const originalMethod = constructor.prototype[method]
 
-        constructor.prototype[method] = async function <T>(...args: T[]) {
+        constructor.prototype[method] = async function (...args: any[]) {
             try {
-                const result = await originalMethod.apply(this, ...args)
+                const result = await originalMethod.apply(this, args)
 
                 return result
             } catch (err: any) {
