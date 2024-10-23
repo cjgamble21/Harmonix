@@ -19,7 +19,13 @@ export class ServerContext extends AutoTimeout {
     private announce: (message: string) => void
 
     constructor(guild: Guild, onIdle: (id: string) => void) {
-        super(() => onIdle(guild.id), 10) // Initialize auto timeout
+        super(
+            () => {
+                this.disconnectFromVoiceChannel(0)
+                onIdle(guild.id)
+            },
+            () => this.player.queueIsEmpty()
+        ) // Initialize auto timeout
 
         this.guild = guild
 

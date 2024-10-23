@@ -24,7 +24,10 @@ export class ServerContextManager {
 
         if (!serverContext) {
             serverContext = {
-                context: new ServerContext(guild, this.onServerContextIdle),
+                context: new ServerContext(
+                    guild,
+                    this.onServerContextIdle.bind(this)
+                ),
                 lastUsed: Date.now(),
             }
             this.serverContexts.set(guildId, serverContext)

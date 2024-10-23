@@ -1,10 +1,15 @@
 export abstract class AutoTimeout {
-    constructor(onIdle: () => void, idleTimeout = 10 * 60 * 1000) {
+    constructor(
+        onIdle: () => void,
+        isIdling: () => boolean,
+        idleTimeout = 10 * 60 * 1000
+    ) {
         this.onIdle = onIdle
+        this.isIdling = isIdling
         this.idleTimeout = idleTimeout // Defaulted to 10 minutes
         this.timeout = this.setIdleTimeout()
 
-        this.resetTimeoutWithMethodInvocations()
+        this.resetTimeoutWithIdling()
     }
 
     private setIdleTimeout() {
@@ -16,24 +21,14 @@ export abstract class AutoTimeout {
         this.timeout = this.setIdleTimeout()
     }
 
-    private resetTimeoutWithMethodInvocations() {
-        const prototype = Object.getPrototypeOf(this)
-        const methods = Object.getOwnPropertyNames(prototype).filter(
-            (name) =>
-                typeof prototype[name] === 'function' && name !== 'constructor'
-        )
-
-        methods.forEach((method) => {
-            const originalMethod = prototype[method]
-
-            prototype[method] = (...args: any[]) => {
-                this.resetIdleTimeout()
-                originalMethod.apply(this, args)
-            }
-        })
+    private resetTimeoutWithIdling() {
+        setInterval(() => {
+            if (!this.isIdling()) this.resetIdleTimeout()
+        }, 10000) // Check every 10 seconds for idling
     }
 
     private onIdle: () => void
+    private isIdling: () => boolean
     private idleTimeout: number
     private timeout: NodeJS.Timeout
 }

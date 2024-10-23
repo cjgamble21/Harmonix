@@ -56,6 +56,10 @@ export class MusicPlayer {
         }
     }
 
+    public queueIsEmpty() {
+        return this.queue.isEmpty()
+    }
+
     private playNextSong() {
         if (this.queue.isEmpty()) {
             this.onFinish()
