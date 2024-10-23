@@ -2,11 +2,6 @@ import { Interaction } from 'discord.js'
 import { Logger } from '../../Logger'
 import { ServerContext } from './ServerContext'
 
-type ServerContextEntry = {
-    lastUsed: number
-    context: ServerContext
-}
-
 export class ServerContextManager {
     constructor() {
         this.serverContexts = new Map()
@@ -23,17 +18,15 @@ export class ServerContextManager {
         let serverContext = this.serverContexts.get(guildId)
 
         if (!serverContext) {
-            serverContext = {
-                context: new ServerContext(
-                    guild,
-                    this.onServerContextIdle.bind(this)
-                ),
-                lastUsed: Date.now(),
-            }
+            serverContext = new ServerContext(
+                guild,
+                this.onServerContextIdle.bind(this)
+            )
+
             this.serverContexts.set(guildId, serverContext)
         }
 
-        serverContext.context.setReply((message: string, ephemeral = false) => {
+        serverContext.setReply((message: string, ephemeral = false) => {
             if (!interaction.isRepliable()) return
 
             const payload = ephemeral
@@ -42,7 +35,7 @@ export class ServerContextManager {
 
             interaction.reply(payload)
         })
-        serverContext.context.setAnnounce((message: string) => {
+        serverContext.setAnnounce((message: string) => {
             const { channelId } = interaction
             if (!channelId) return
 
@@ -54,7 +47,7 @@ export class ServerContextManager {
             channel.send(message)
         })
 
-        return serverContext.context
+        return serverContext
     }
 
     // Event handler for server contexts to clear themselves from memory after idling
@@ -62,5 +55,5 @@ export class ServerContextManager {
         this.serverContexts.delete(id)
     }
 
-    private serverContexts: Map<string, ServerContextEntry>
+    private serverContexts: Map<string, ServerContext>
 }
