@@ -10,20 +10,20 @@ import { getVideoMetadata, queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 import { decode } from 'html-entities'
-import { ServerContext } from './ServerContext'
+import { ServerContextManager } from './ServerContext'
 import { SwallowErrors } from '../Utilities'
 
 // @SwallowErrors
 class DiscordClient {
     private botId: string
     private botToken: string
-    private serverContexts: Map<string, ServerContext>
+    private serverContextManager: ServerContextManager
     private client: Client
 
     constructor() {
         this.botId = process.env.DISCORD_BOT_ID ?? ''
         this.botToken = process.env.DISCORD_BOT_TOKEN ?? ''
-        this.serverContexts = new Map()
+        this.serverContextManager = new ServerContextManager()
 
         this.client = new Client({
             intents: [
@@ -54,7 +54,8 @@ class DiscordClient {
     }
 
     private onInteractionCreate(interaction: Interaction) {
-        const serverContext = this.getServerContext(interaction)
+        const serverContext =
+            this.serverContextManager.getServerContext(interaction)
 
         if (interaction.isCommand()) {
             switch (interaction.commandName) {
@@ -79,45 +80,6 @@ class DiscordClient {
         }
     }
 
-    private getServerContext(interaction: Interaction): ServerContext {
-        const { guildId, guild } = interaction
-
-        if (!guildId || !guild) {
-            Logger.error('Interaction with no guild!')
-            throw new Error("Can't create server context without a guild")
-        }
-
-        let serverContext = this.serverContexts.get(guildId)
-
-        if (!serverContext) {
-            serverContext = new ServerContext(guild)
-            this.serverContexts.set(guildId, serverContext)
-        }
-
-        serverContext.setReply((message: string, ephemeral = false) => {
-            if (!interaction.isRepliable()) return
-
-            const payload = ephemeral
-                ? { content: message, ephemeral }
-                : message
-
-            interaction.reply(payload)
-        })
-        serverContext.setAnnounce((message: string) => {
-            const { channelId } = interaction
-            if (!channelId) return
-
-            const channel = guild.channels.cache.get(channelId)
-
-            if (!channel || !channel.isTextBased() || !channel.isSendable())
-                return
-
-            channel.send(message)
-        })
-
-        return serverContext
-    }
-
     private async getOptionsFromQuery(interaction: AutocompleteInteraction) {
         const query = interaction.options.get('query')?.value
 
@@ -129,12 +91,6 @@ class DiscordClient {
                 value: id,
             }))
         )
-    }
-
-    private cleanupIdleServerContexts() {
-        const IDLE_TIMEOUT = 10 * 60 * 1000 // 10 minutes
-
-        setInterval(() => {}, IDLE_TIMEOUT)
     }
 }
 

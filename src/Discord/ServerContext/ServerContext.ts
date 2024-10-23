@@ -8,8 +8,9 @@ import { Logger } from '../../Logger'
 import { VideoMetadata } from '../../Youtube/types'
 import { MusicPlayer } from '../MusicPlayer'
 import { Guild } from 'discord.js'
+import { AutoTimeout } from '../../Utilities'
 
-export class ServerContext {
+export class ServerContext extends AutoTimeout {
     private guild: Guild
     private player: MusicPlayer
     private connection: VoiceConnection | null = null
@@ -17,7 +18,9 @@ export class ServerContext {
     private reply: (message: string) => void
     private announce: (message: string) => void
 
-    constructor(guild: Guild) {
+    constructor(guild: Guild, onIdle: (id: string) => void) {
+        super(() => onIdle(guild.id), 10) // Initialize auto timeout
+
         this.guild = guild
 
         this.player = new MusicPlayer(
