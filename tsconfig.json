@@ -58,5 +58,5 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "exclude": ["**/node_modules", "**/*.type.ts"]
+  "exclude": ["**/node_modules", "**/*.type.ts", "**/tests"]
 }

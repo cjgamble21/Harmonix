@@ -1,6 +1,5 @@
 node_modules/
 dist/
 .env
-*.js
 *.mp3
 .vscode/
