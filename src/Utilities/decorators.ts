@@ -7,15 +7,13 @@ export const SwallowErrors = <T extends new (...args: any) => InstanceType<T>>(
     if (context.kind !== 'class') return
 
     const methods = Object.getOwnPropertyNames(constructor.prototype).filter(
-        (name) =>
-            typeof constructor.prototype[name] === 'function' &&
-            name !== 'constructor'
+        (name) => typeof constructor.prototype[name] === 'function'
     )
 
     methods.forEach((method) => {
         const originalMethod = constructor.prototype[method]
 
-        constructor.prototype[method] = async function (...args: any[]) {
+        constructor.prototype[method] = async function (...args: any) {
             try {
                 const result = await originalMethod.apply(this, args)
 

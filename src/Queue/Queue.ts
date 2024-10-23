@@ -18,7 +18,7 @@ export class Queue<T> {
     public pop(): T | null {
         if (this.isEmpty()) return null
 
-        return this.container.pop() as T
+        return this.container.shift() as T
     }
 
     public dequeue(items: T[], comparator: (item: T) => Primitive) {

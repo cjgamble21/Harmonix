@@ -14,7 +14,8 @@ export class ServerContext {
     private player: MusicPlayer
     private connection: VoiceConnection | null = null
     private disconnectTimeout: NodeJS.Timeout | null = null
-    private sendChatMessage: (message: string, ephemeral?: boolean) => void
+    private reply: (message: string) => void
+    private announce: (message: string) => void
 
     constructor(guild: Guild) {
         this.guild = guild
@@ -25,20 +26,24 @@ export class ServerContext {
             this.onMusicPlayerFinish.bind(this)
         )
 
-        this.sendChatMessage = () => {}
+        this.reply = () => {}
+        this.announce = () => {}
 
         Logger.event(`Initialized context for server ${this.guild.id}`)
     }
 
-    public setChatMessenger(
-        sendChatMessage: (message: string, ephemeral?: boolean) => void
-    ) {
-        this.sendChatMessage = sendChatMessage
+    public setReply(reply: (message: string) => void) {
+        this.reply = reply
+    }
+
+    public setAnnounce(announce: (message: string) => void) {
+        this.announce = announce
     }
 
     public queueSong(song: VideoMetadata, user: string) {
+        this.reply(`Added ${song.title} to the queue!`)
         this.player.enqueue(user, song)
-        this.sendChatMessage(`Added ${song.title} to the queue!`)
+
         Logger.event(`Queued ${song.title} in server ${this.guild.id}`)
         this.cancelDisconnect()
     }
@@ -56,6 +61,10 @@ export class ServerContext {
                     .voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator, // Annoying but needed after update to discord voice
             })
 
+            this.connection?.on('error', () =>
+                (() => this.disconnectFromVoiceChannel(0)).bind(this)
+            )
+
             this.connection.on('stateChange', (oldState, newState) => {
                 const { status } = newState
 
@@ -71,8 +80,7 @@ export class ServerContext {
         })
     }
 
-    private disconnectFromVoiceChannel() {
-        const timeout = 20_000
+    private disconnectFromVoiceChannel(timeout = 20_000) {
         Logger.event(`Disconnecting from voice channel in ${timeout}`)
         this.disconnectTimeout = setTimeout(
             () => this.connection?.disconnect(),
@@ -91,7 +99,7 @@ export class ServerContext {
         player: AudioPlayer,
         message: string
     ) {
-        this.sendChatMessage(message)
+        this.announce(message)
         this.getVoiceChannelFromUserId(user).then((channelId) => {
             if (!channelId) return
 
@@ -104,11 +112,14 @@ export class ServerContext {
     }
 
     private onMusicPlayerSkip(message: string) {
-        this.sendChatMessage(message)
+        this.reply(message)
     }
 
     private onMusicPlayerFinish() {
         Logger.event('Music player finished')
+        this.announce(
+            'Queue is now empty. Harmonix will be disconnecting in 20 seconds'
+        )
 
         this.disconnectFromVoiceChannel()
     }

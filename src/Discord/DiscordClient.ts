@@ -94,9 +94,26 @@ class DiscordClient {
             this.serverContexts.set(guildId, serverContext)
         }
 
-        serverContext.setChatMessenger(
-            this.getChatMessenger(interaction, guild)
-        )
+        serverContext.setReply((message: string, ephemeral = false) => {
+            if (!interaction.isRepliable()) return
+
+            const payload = ephemeral
+                ? { content: message, ephemeral }
+                : message
+
+            interaction.reply(payload)
+        })
+        serverContext.setAnnounce((message: string) => {
+            const { channelId } = interaction
+            if (!channelId) return
+
+            const channel = guild.channels.cache.get(channelId)
+
+            if (!channel || !channel.isTextBased() || !channel.isSendable())
+                return
+
+            channel.send(message)
+        })
 
         return serverContext
     }
@@ -114,28 +131,10 @@ class DiscordClient {
         )
     }
 
-    private getChatMessenger(interaction: Interaction, guild: Guild) {
-        /* 
-            My hope is that the interaction will be saved in the closure, 
-            thus storing the "last interacted with channel" for sending generic messages
-        */
-        if (!interaction.isRepliable()) return () => {}
+    private cleanupIdleServerContexts() {
+        const IDLE_TIMEOUT = 10 * 60 * 1000 // 10 minutes
 
-        return (message: string) => {
-            if (!interaction.replied) {
-                interaction.reply(message)
-            } else {
-                const { channelId } = interaction
-                if (!channelId) return
-
-                const channel = guild.channels.cache.get(channelId)
-
-                if (!channel || !channel.isTextBased() || !channel.isSendable())
-                    return
-
-                channel.send(message)
-            }
-        }
+        setInterval(() => {}, IDLE_TIMEOUT)
     }
 }
 
