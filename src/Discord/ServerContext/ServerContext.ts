@@ -15,7 +15,7 @@ export class ServerContext extends AutoTimeout {
     private player: MusicPlayer
     private connection: VoiceConnection | null = null
     private disconnectTimeout: NodeJS.Timeout | null = null
-    private reply: (message: string) => void
+    private reply: (message: string, ephemeral?: boolean) => void
     private announce: (message: string) => void
 
     constructor(guild: Guild, onIdle: (id: string) => void) {
@@ -32,7 +32,8 @@ export class ServerContext extends AutoTimeout {
         this.player = new MusicPlayer(
             this.onMusicPlayerBegin.bind(this),
             this.onMusicPlayerSkip.bind(this),
-            this.onMusicPlayerFinish.bind(this)
+            this.onMusicPlayerFinish.bind(this),
+            this.onMusicPlayerError.bind(this)
         )
 
         this.reply = () => {}
@@ -41,7 +42,7 @@ export class ServerContext extends AutoTimeout {
         Logger.event(`Initialized context for server ${this.guild.id}`)
     }
 
-    public setReply(reply: (message: string) => void) {
+    public setReply(reply: (message: string, ephemeral?: boolean) => void) {
         this.reply = reply
     }
 
@@ -50,7 +51,7 @@ export class ServerContext extends AutoTimeout {
     }
 
     public queueSong(song: VideoMetadata, user: string) {
-        this.reply(`Added ${song.title} to the queue!`)
+        this.reply(`Added ${song.title} to the queue!`, true)
         this.player.enqueue(user, song)
 
         Logger.event(`Queued ${song.title} in server ${this.guild.id}`)
@@ -131,6 +132,11 @@ export class ServerContext extends AutoTimeout {
         )
 
         this.disconnectFromVoiceChannel()
+    }
+
+    private onMusicPlayerError(message: string) {
+        this.announce(message)
+        this.disconnectFromVoiceChannel(0)
     }
 
     private getVoiceChannelFromUserId(user: string) {

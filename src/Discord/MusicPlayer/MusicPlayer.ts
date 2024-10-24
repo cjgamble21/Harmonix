@@ -19,15 +19,18 @@ export class MusicPlayer {
     private onPlay: (user: string, player: AudioPlayer, message: string) => void
     private onSkip: (message: string) => void
     private onFinish: () => void
+    private onError: (message: string) => void
 
     constructor(
         onPlay: (user: string, player: AudioPlayer, message: string) => void,
         onSkip: (message: string) => void,
-        onFinish: () => void
+        onFinish: () => void,
+        onError: (message: string) => void
     ) {
         this.onPlay = onPlay
         this.onSkip = onSkip
         this.onFinish = onFinish
+        this.onError = onError
 
         this.queue = new Queue()
         this.player = createAudioPlayer()
@@ -69,21 +72,27 @@ export class MusicPlayer {
 
         const nextSong = this.queue.pop()!
 
-        this.currentSong = nextSong
+        try {
+            const songStream =
+                MusicPlayer.getSongStreamFromVideoMetadata(nextSong)
 
-        const songStream = MusicPlayer.getSongStreamFromVideoMetadata(nextSong)
+            this.currentSong = nextSong
 
-        this.player.play(songStream)
+            this.player.play(songStream)
 
-        this.onPlay(
-            nextSong.user,
-            this.player,
-            `Playing ${nextSong.title} (${nextSong.duration})`
-        )
+            this.onPlay(
+                nextSong.user,
+                this.player,
+                `Playing ${nextSong.title} (${nextSong.duration})`
+            )
 
-        Logger.event(
-            `Audio Player Playing ${nextSong.title}, length ${nextSong.duration}`
-        )
+            Logger.event(
+                `Audio Player Playing ${nextSong.title}, length ${nextSong.duration}`
+            )
+        } catch (e) {
+            Logger.error(`Error attempting to play ${nextSong.title}`)
+            this.onError(`Error attempting to play ${nextSong.title}`)
+        }
     }
 
     private registerLifecycleMethods() {
@@ -105,6 +114,7 @@ export class MusicPlayer {
         const cookies = JSON.parse(readFileSync('cookies.json').toString())
 
         const agent = ytdl.createAgent(cookies)
+
         const songStream = ytdl(url, {
             filter: 'audioonly',
             quality: 'highestaudio',
