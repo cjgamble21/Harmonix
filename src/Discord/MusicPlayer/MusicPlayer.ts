@@ -8,6 +8,7 @@ import { Queue } from '../../Queue'
 import { VideoMetadata } from '../../Youtube/types'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../Logger'
+import { readFileSync } from 'fs'
 
 export type QueuedMusic = VideoMetadata & { user: string }
 
@@ -86,9 +87,10 @@ export class MusicPlayer {
     }
 
     private registerLifecycleMethods() {
-        this.player.on(AudioPlayerStatus.Idle, () =>
+        this.player.on(AudioPlayerStatus.Idle, () => {
             Logger.event('Audio Player Idling...')
-        )
+            this.playNextSong()
+        })
         this.player.on(AudioPlayerStatus.Buffering, () =>
             Logger.event('Audio Player Buffering...')
         )
@@ -99,27 +101,17 @@ export class MusicPlayer {
     }
 
     private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {
-        const proxy_url = process.env.PROXY_URL ?? ''
-        const agent = ytdl.createProxyAgent(proxy_url)
         const url = `https://youtube.com/watch?v=${metadata.id}`
+        const cookies = JSON.parse(readFileSync('cookies.json').toString())
 
-        const username = process.env.PROXY_USERNAME
-        const password = process.env.PROXY_PASSWORD
-
+        const agent = ytdl.createAgent(cookies)
         const songStream = ytdl(url, {
             filter: 'audioonly',
             quality: 'highestaudio',
             agent,
-            requestOptions: {
-                headers: {
-                    Authorization: Buffer.from(
-                        `${username}:${password}`
-                    ).toString('base64'),
-                },
-            },
             /* 
-                    Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
-                */
+                Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
+            */
             highWaterMark: 1 << 25,
         })
         return createAudioResource(songStream)

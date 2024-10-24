@@ -25,4 +25,10 @@ export namespace Logger {
             )
             .forEach((event) => console.log(event))
     }
+
+    export function debug(...events: string[]) {
+        if (DEBUG) {
+            Logger.event(...events.map((event) => `DEBUGGER EVENT :: ${event}`))
+        }
+    }
 }

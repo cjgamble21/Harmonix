@@ -4,3 +4,4 @@ dist/
 *.js
 *.mp3
 .vscode/
+cookies.json

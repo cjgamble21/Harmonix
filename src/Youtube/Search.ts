@@ -16,8 +16,6 @@ if (!url || !apiKey) {
     throw new Error('Missing env var')
 }
 
-// const apiKey = apiKeys.split(';').unshift()
-
 const YoutubeAPI = axios.create({
     baseURL: url,
     paramsSerializer: {
@@ -70,5 +68,6 @@ const getTimeFromDuration = (duration: string) => {
         .replace(durationRegex, '$1:$2:$3')
         .split(':')
         .filter(Boolean)
+        .map((value) => value.padStart(2, '0')) // Preprending 0 if number is below 10
         .join(':')
 }
