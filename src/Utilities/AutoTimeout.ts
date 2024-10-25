@@ -13,7 +13,7 @@ export abstract class AutoTimeout {
     }
 
     private setIdleTimeout() {
-        return setTimeout(this.onIdle, this.idleTimeout)
+        return setTimeout(() => this.onIdle(), this.idleTimeout)
     }
 
     private resetIdleTimeout() {

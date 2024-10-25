@@ -7,17 +7,22 @@ import {
     afterEach,
 } from '@jest/globals'
 import { AutoTimeout } from '../../src/Utilities'
+import { FunctionLike, Mock } from 'jest-mock'
 
 class TestableAutoTimeout extends AutoTimeout {}
 
 describe('Auto Timeout Class', () => {
     describe('instance methods', () => {
         let instance: TestableAutoTimeout
-        const onIdle = jest.fn(() => {})
-        const isIdling = jest.fn(() => true)
+        let onIdle: Mock<() => void>
+        let isIdling: Mock<() => boolean>
 
         beforeEach(() => {
             jest.useFakeTimers()
+
+            onIdle = jest.fn(() => {})
+            isIdling = jest.fn(() => true)
+
             instance = new TestableAutoTimeout(onIdle, isIdling)
         })
 
@@ -48,7 +53,7 @@ describe('Auto Timeout Class', () => {
 
                 expect(newTimeout).toEqual(initialTimeout)
 
-                jest.advanceTimersByTime(10000)
+                jest.advanceTimersByTime(instance['idleTimeout'])
 
                 expect(onIdle).toHaveBeenCalled()
             })
@@ -71,9 +76,11 @@ describe('Auto Timeout Class', () => {
 
             test('idling state change', () => {
                 let isIdlingBoolean = true
-                const changeableIsIdling = jest.fn(() => isIdlingBoolean)
 
-                instance = new TestableAutoTimeout(onIdle, changeableIsIdling)
+                onIdle = jest.fn(() => {})
+                isIdling = jest.fn(() => isIdlingBoolean)
+
+                instance = new TestableAutoTimeout(onIdle, isIdling)
 
                 const initialTimeout = instance['timeout']
 
@@ -81,13 +88,13 @@ describe('Auto Timeout Class', () => {
 
                 isIdlingBoolean = false
 
-                jest.advanceTimersByTime(1000)
+                jest.advanceTimersByTime(10000)
 
-                expect(instance['timeout']).toEqual(initialTimeout)
+                expect(instance['timeout']).not.toEqual(initialTimeout)
 
                 jest.advanceTimersByTime(instance['idleTimeout'])
 
-                expect(onIdle).not.toBeCalled() // should be true, failing atm
+                expect(onIdle).not.toBeCalled()
             })
         })
 
