@@ -46,6 +46,10 @@ export class MusicPlayer {
         this.player.pause()
     }
 
+    public resume() {
+        this.player.unpause()
+    }
+
     public skip() {
         if (this.currentSong) this.onSkip(`Skipping ${this.currentSong.title}`)
         this.player.stop()
@@ -107,6 +111,11 @@ export class MusicPlayer {
             Logger.event('Audio Player Paused...')
         )
         this.player.on(AudioPlayerStatus.Playing, () => {})
+
+        this.player.on('error', () => {
+            this.onError(`Error attempting to play ${this.currentSong?.title}`)
+            this.playNextSong()
+        })
     }
 
     private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {
@@ -123,6 +132,8 @@ export class MusicPlayer {
                 Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
             */
             highWaterMark: 1 << 25,
+            liveBuffer: 1 << 62,
+            dlChunkSize: 0, //disabling chunking is recommended in discord bot
         })
         return createAudioResource(songStream)
     }

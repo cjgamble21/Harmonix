@@ -80,10 +80,12 @@ export class ServerContext extends AutoTimeout {
 
                 switch (status) {
                     case 'ready':
+                        this.player.resume()
                         resolve()
 
                     case 'disconnected':
                     case 'destroyed':
+                        this.player.pause()
                         reject()
                 }
             })
@@ -111,7 +113,12 @@ export class ServerContext extends AutoTimeout {
     ) {
         this.announce(message)
         this.getVoiceChannelFromUserId(user).then((channelId) => {
-            if (!channelId) return
+            if (!channelId) {
+                this.announce(
+                    `Whoops! I won't be able to play your song until you are in the voice channel @${user}`
+                )
+                return
+            }
 
             this.joinVoiceChannel(channelId)
                 .then(() => this.connection?.subscribe(player))
@@ -136,7 +143,6 @@ export class ServerContext extends AutoTimeout {
 
     private onMusicPlayerError(message: string) {
         this.announce(message)
-        this.disconnectFromVoiceChannel(0)
     }
 
     private getVoiceChannelFromUserId(user: string) {
