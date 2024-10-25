@@ -99,27 +99,14 @@ export class MusicPlayer {
     }
 
     private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {
-        const proxy_url = process.env.PROXY_URL ?? ''
-        const agent = ytdl.createProxyAgent(proxy_url)
         const url = `https://youtube.com/watch?v=${metadata.id}`
-
-        const username = process.env.PROXY_USERNAME
-        const password = process.env.PROXY_PASSWORD
 
         const songStream = ytdl(url, {
             filter: 'audioonly',
             quality: 'highestaudio',
-            agent,
-            requestOptions: {
-                headers: {
-                    Authorization: Buffer.from(
-                        `${username}:${password}`
-                    ).toString('base64'),
-                },
-            },
             /* 
-                    Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
-                */
+                Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
+            */
             highWaterMark: 1 << 25,
         })
         return createAudioResource(songStream)

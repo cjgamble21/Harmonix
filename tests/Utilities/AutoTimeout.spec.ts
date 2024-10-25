@@ -68,6 +68,27 @@ describe('Auto Timeout Class', () => {
 
                 expect(newTimeout).not.toEqual(initialTimeout)
             })
+
+            test('idling state change', () => {
+                let isIdlingBoolean = true
+                const changeableIsIdling = jest.fn(() => isIdlingBoolean)
+
+                instance = new TestableAutoTimeout(onIdle, changeableIsIdling)
+
+                const initialTimeout = instance['timeout']
+
+                // onIdle should be set to invoke after idleTimeout time
+
+                isIdlingBoolean = false
+
+                jest.advanceTimersByTime(1000)
+
+                expect(instance['timeout']).toEqual(initialTimeout)
+
+                jest.advanceTimersByTime(instance['idleTimeout'])
+
+                expect(onIdle).not.toBeCalled() // should be true, failing atm
+            })
         })
 
         afterEach(() => {

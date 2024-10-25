@@ -9,7 +9,7 @@ export abstract class AutoTimeout {
         this.idleTimeout = idleTimeout // Defaulted to 10 minutes
         this.timeout = this.setIdleTimeout()
 
-        this.resetTimeoutWithIdling()
+        this.interval = this.resetTimeoutWithIdling()
     }
 
     private setIdleTimeout() {
@@ -22,7 +22,7 @@ export abstract class AutoTimeout {
     }
 
     private resetTimeoutWithIdling() {
-        setInterval(() => {
+        return setInterval(() => {
             if (!this.isIdling()) this.resetIdleTimeout()
         }, 10000) // Check every 10 seconds for idling
     }
@@ -31,4 +31,5 @@ export abstract class AutoTimeout {
     private isIdling: () => boolean
     private idleTimeout: number
     private timeout: NodeJS.Timeout
+    private interval: NodeJS.Timeout
 }
