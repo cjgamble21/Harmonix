@@ -3,3 +3,4 @@ dist/
 .env
 *.mp3
 .vscode/
+cookies.json
