@@ -4,10 +4,10 @@ import {
     createAudioPlayer,
     createAudioResource,
 } from '@discordjs/voice'
-import { Queue } from '../../Queue'
-import { VideoMetadata } from '../../Youtube/types'
+import { Queue } from '../../../Queue'
+import { VideoMetadata } from '../../../Youtube/types'
 import ytdl from '@distube/ytdl-core'
-import { Logger } from '../../Logger'
+import { Logger } from '../../../Logger'
 import { readFileSync } from 'fs'
 
 export type QueuedMusic = VideoMetadata & { user: string }

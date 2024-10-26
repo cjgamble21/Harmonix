@@ -9,7 +9,7 @@ export abstract class AutoTimeout {
         this.idleTimeout = idleTimeout // Defaulted to 10 minutes
         this.timeout = this.setIdleTimeout()
 
-        this.resetTimeoutWithIdling()
+        this.resetTimeoutUnlessIdling()
     }
 
     private setIdleTimeout() {
@@ -21,7 +21,7 @@ export abstract class AutoTimeout {
         this.timeout = this.setIdleTimeout()
     }
 
-    private resetTimeoutWithIdling() {
+    private resetTimeoutUnlessIdling() {
         setInterval(() => {
             if (!this.isIdling()) this.resetIdleTimeout()
         }, 10000) // Check every 10 seconds for idling

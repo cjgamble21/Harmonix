@@ -11,15 +11,10 @@ import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 import { decode } from 'html-entities'
 import { ServerContextManager } from './ServerContext'
-import { SwallowErrors } from '../Utilities'
+import { CoreErrorBoundary } from '../Utilities'
 
-@SwallowErrors
+@CoreErrorBoundary
 class DiscordClient {
-    private botId: string
-    private botToken: string
-    private serverContextManager: ServerContextManager
-    private client: Client
-
     constructor() {
         this.botId = process.env.DISCORD_BOT_ID ?? ''
         this.botToken = process.env.DISCORD_BOT_TOKEN ?? ''
@@ -92,6 +87,11 @@ class DiscordClient {
             }))
         )
     }
+
+    private botId: string
+    private botToken: string
+    private serverContextManager: ServerContextManager
+    private client: Client
 }
 
 export default new DiscordClient()

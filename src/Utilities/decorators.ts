@@ -1,6 +1,8 @@
 import { Logger } from '../Logger'
 
-export const SwallowErrors = <T extends new (...args: any) => InstanceType<T>>(
+export const CoreErrorBoundary = <
+    T extends new (...args: any) => InstanceType<T>,
+>(
     constructor: T,
     context: ClassDecoratorContext
 ) => {

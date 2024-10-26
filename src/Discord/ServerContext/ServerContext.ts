@@ -7,22 +7,21 @@ import {
 } from '@discordjs/voice'
 import { Logger } from '../../Logger'
 import { VideoMetadata } from '../../Youtube/types'
-import { MusicPlayer } from '../MusicPlayer'
+import { MusicPlayer } from './MusicPlayer'
 import { Guild } from 'discord.js'
 import { AutoTimeout } from '../../Utilities'
+import { VoiceChannelConnection } from './VoiceChannelConnection'
 
 export class ServerContext extends AutoTimeout {
     private guild: Guild
     private player: MusicPlayer
-    private connection: VoiceConnection | null = null
-    private disconnectTimeout: NodeJS.Timeout | null = null
+    private connection: VoiceChannelConnection
     private reply: (message: string, ephemeral?: boolean) => void
     private announce: (message: string) => void
 
     constructor(guild: Guild, onIdle: (id: string) => void) {
         super(
             () => {
-                this.disconnectFromVoiceChannel(0)
                 onIdle(guild.id)
             },
             () => this.player.queueIsEmpty()
@@ -35,6 +34,14 @@ export class ServerContext extends AutoTimeout {
             this.onMusicPlayerSkip.bind(this),
             this.onMusicPlayerFinish.bind(this),
             this.onMusicPlayerError.bind(this)
+        )
+
+        this.connection = new VoiceChannelConnection(
+            guild,
+            () => this.player.queueIsEmpty(),
+            (connection) => connection.subscribe(),
+            () => {},
+            () => {}
         )
 
         this.reply = () => {}
@@ -63,56 +70,12 @@ export class ServerContext extends AutoTimeout {
         this.player.skip()
     }
 
-    private joinVoiceChannel(channelId: string) {
-        return new Promise<void>((resolve, reject) => {
-            this.connection?.removeAllListeners()
-            this.connection = joinVoiceChannel({
-                channelId,
-                guildId: this.guild.id,
-                adapterCreator: this.guild
-                    .voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator, // Annoying but needed after update to discord voice
-            })
-
-            this.connection?.on('error', () =>
-                (() => this.disconnectFromVoiceChannel(0)).bind(this)
-            )
-
-            this.connection.on('stateChange', (oldState, newState) => {
-                const { status } = newState
-
-                switch (status) {
-                    case 'ready':
-                        this.player.resume()
-                        resolve()
-
-                    case 'disconnected':
-                    case 'destroyed':
-                        this.player.pause()
-                        reject()
-                }
-            })
-        })
-    }
-
-    private disconnectFromVoiceChannel(timeout = 20_000) {
-        this.disconnectTimeout = setTimeout(
-            () => this.connection?.disconnect(),
-            timeout
-        )
-    }
-
-    private cancelDisconnect() {
-        if (!this.disconnectTimeout) return
-
-        clearTimeout(this.disconnectTimeout)
-    }
-
     private onMusicPlayerBegin(
         user: string,
         player: AudioPlayer,
         message: string
     ) {
-        this.announce(message)
+        this.connection.cancelLeave()
         this.getVoiceChannelFromUserId(user).then((channelId) => {
             if (!channelId) {
                 this.announce(
@@ -121,16 +84,13 @@ export class ServerContext extends AutoTimeout {
                 return
             }
 
-            this.joinVoiceChannel(channelId)
-                .then(() => this.connection?.subscribe(player))
-                .catch(() => {
-                    Logger.event(`Disconnected from voice channel ${channelId}`)
-                })
+            this.announce(message)
+            this.connection.join(channelId)
         })
     }
 
     private onMusicPlayerSkip(message: string) {
-        this.reply(message)
+        this.announce(message)
     }
 
     private onMusicPlayerFinish() {
@@ -139,7 +99,7 @@ export class ServerContext extends AutoTimeout {
             'Queue is now empty. Harmonix will be disconnecting in 20 seconds'
         )
 
-        this.disconnectFromVoiceChannel()
+        this.connection.leave()
     }
 
     private onMusicPlayerError(message: string) {
