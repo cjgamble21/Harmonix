@@ -2,6 +2,7 @@ import {
     AudioPlayer,
     DiscordGatewayAdapterCreator,
     VoiceConnection,
+    VoiceConnectionStatus,
     joinVoiceChannel,
 } from '@discordjs/voice'
 import { Logger } from '../../Logger'
@@ -64,6 +65,7 @@ export class ServerContext extends AutoTimeout {
 
     private joinVoiceChannel(channelId: string) {
         return new Promise<void>((resolve, reject) => {
+            this.connection?.removeAllListeners()
             this.connection = joinVoiceChannel({
                 channelId,
                 guildId: this.guild.id,
@@ -93,7 +95,6 @@ export class ServerContext extends AutoTimeout {
     }
 
     private disconnectFromVoiceChannel(timeout = 20_000) {
-        Logger.event(`Disconnecting from voice channel in ${timeout}`)
         this.disconnectTimeout = setTimeout(
             () => this.connection?.disconnect(),
             timeout

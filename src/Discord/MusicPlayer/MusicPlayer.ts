@@ -133,7 +133,7 @@ export class MusicPlayer {
             */
             highWaterMark: 1 << 25,
             liveBuffer: 1 << 62,
-            dlChunkSize: 0, //disabling chunking is recommended in discord bot
+            dlChunkSize: 0,
         })
         return createAudioResource(songStream)
     }
