@@ -16,13 +16,13 @@ export class MusicPlayer {
     private queue: Queue<QueuedMusic>
     private player: AudioPlayer
     private currentSong: QueuedMusic | null = null
-    private onPlay: (user: string, player: AudioPlayer, message: string) => void
+    private onPlay: (user: string, message: string) => void
     private onSkip: (message: string) => void
     private onFinish: () => void
     private onError: (message: string) => void
 
     constructor(
-        onPlay: (user: string, player: AudioPlayer, message: string) => void,
+        onPlay: (user: string, message: string) => void,
         onSkip: (message: string) => void,
         onFinish: () => void,
         onError: (message: string) => void
@@ -36,6 +36,10 @@ export class MusicPlayer {
         this.player = createAudioPlayer()
 
         this.registerLifecycleMethods()
+    }
+
+    public getPlayer() {
+        return this.player
     }
 
     public stop() {
@@ -86,7 +90,6 @@ export class MusicPlayer {
 
             this.onPlay(
                 nextSong.user,
-                this.player,
                 `Playing ${nextSong.title} (${nextSong.duration})`
             )
 
@@ -127,7 +130,7 @@ export class MusicPlayer {
         const songStream = ytdl(url, {
             filter: 'audioonly',
             quality: 'highestaudio',
-            agent,
+            ...(cookies && { agent }),
             /* 
                 Not too sure about this high watermark bitrate, but found this fix here: https://github.com/fent/node-ytdl-core/issues/902
             */

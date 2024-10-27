@@ -41,6 +41,9 @@ class DiscordClient {
             Events.InteractionCreate,
             this.onInteractionCreate.bind(this)
         )
+        this.client.on(Events.Error, (err) => {
+            throw err
+        })
     }
 
     private async onClientReady() {

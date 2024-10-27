@@ -1,10 +1,3 @@
-import {
-    AudioPlayer,
-    DiscordGatewayAdapterCreator,
-    VoiceConnection,
-    VoiceConnectionStatus,
-    joinVoiceChannel,
-} from '@discordjs/voice'
 import { Logger } from '../../Logger'
 import { VideoMetadata } from '../../Youtube/types'
 import { MusicPlayer } from './MusicPlayer'
@@ -38,10 +31,10 @@ export class ServerContext extends AutoTimeout {
 
         this.connection = new VoiceChannelConnection(
             guild,
-            () => this.player.queueIsEmpty(),
-            (connection) => connection.subscribe(),
-            () => {},
-            () => {}
+            () => this.player.queueIsEmpty(), // Idling condition
+            (connection) => connection.subscribe(this.player.getPlayer()), // On join
+            () => this.announce('Unable to join voice channel'), // On join error
+            (connection) => connection.disconnect() // On leave
         )
 
         this.reply = () => {}
@@ -63,18 +56,14 @@ export class ServerContext extends AutoTimeout {
         this.player.enqueue(user, song)
 
         Logger.event(`Queued ${song.title} in server ${this.guild.id}`)
-        this.cancelDisconnect()
+        this.connection.cancelLeave()
     }
 
     public skipSong() {
         this.player.skip()
     }
 
-    private onMusicPlayerBegin(
-        user: string,
-        player: AudioPlayer,
-        message: string
-    ) {
+    private onMusicPlayerBegin(user: string, message: string) {
         this.connection.cancelLeave()
         this.getVoiceChannelFromUserId(user).then((channelId) => {
             if (!channelId) {
