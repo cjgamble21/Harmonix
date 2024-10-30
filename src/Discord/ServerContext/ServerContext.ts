@@ -70,6 +70,22 @@ export class ServerContext extends AutoTimeout {
         this.player.skip()
     }
 
+    public pauseMusic() {
+        if (this.player.pause()) {
+            this.reply('Paused!')
+        } else {
+            this.reply('Unable to pause music... is there anything to pause?')
+        }
+    }
+
+    public resumeMusic() {
+        if (this.player.resume()) {
+            this.reply('Resumed!')
+        } else {
+            this.reply('Unable to resume music... am I in your voice channel?')
+        }
+    }
+
     public updateUserContext(user: string, options: VideoMetadata[]) {
         this.getUserContext(user).then((context) =>
             context.setLastKnownOptions(options)
@@ -92,6 +108,7 @@ export class ServerContext extends AutoTimeout {
     }
 
     private onMusicPlayerSkip(message: string) {
+        this.reply('Skipped!')
         this.announce(message)
     }
 

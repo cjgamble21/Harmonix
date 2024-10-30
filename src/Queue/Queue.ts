@@ -26,4 +26,8 @@ export class Queue<T> {
             (item) => !items.map(comparator).includes(comparator(item))
         )
     }
+
+    public clear() {
+        this.container = []
+    }
 }

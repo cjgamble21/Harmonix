@@ -64,6 +64,14 @@ class DiscordClient {
                     serverContext.skipSong()
                     break
 
+                case 'pause':
+                    serverContext.pauseMusic()
+                    break
+
+                case 'resume':
+                    serverContext.resumeMusic()
+                    break
+
                 default:
                     interaction.reply('Unsupported command :(')
                     break

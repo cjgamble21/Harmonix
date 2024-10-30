@@ -1,5 +1,6 @@
 import {
     AudioPlayer,
+    AudioPlayerPlayingState,
     AudioPlayerStatus,
     createAudioPlayer,
     createAudioResource,
@@ -43,21 +44,21 @@ export class MusicPlayer {
     }
 
     public stop() {
+        this.queue.clear()
         this.player.stop()
     }
 
     public pause() {
-        this.player.pause()
+        return this.player.pause(true)
     }
 
     public resume() {
-        this.player.unpause()
+        return this.player.unpause()
     }
 
     public skip() {
         if (this.currentSong) this.onSkip(`Skipping ${this.currentSong.title}`)
         this.player.stop()
-        this.playNextSong()
     }
 
     public enqueue(user: string, ...metadata: VideoMetadata[]) {
@@ -140,6 +141,6 @@ export class MusicPlayer {
             liveBuffer: 1 << 62,
             dlChunkSize: 0,
         })
-        return createAudioResource(songStream)
+        return createAudioResource(songStream, { silencePaddingFrames: 20 })
     }
 }

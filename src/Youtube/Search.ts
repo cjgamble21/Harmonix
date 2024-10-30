@@ -25,7 +25,7 @@ const YoutubeAPI = axios.create({
 })
 
 export const queryVideos = debounce(
-    (query: string): Promise<VideoMetadata[]> =>
+    (query: string): Promise<SearchMetadata[]> =>
         YoutubeAPI.get<SearchResult>(`search`, {
             params: {
                 part: 'snippet',
@@ -41,6 +41,18 @@ export const queryVideos = debounce(
             }))
         )
 )
+
+export const getVideoDuration = (id: string): Promise<string> =>
+    YoutubeAPI.get<VideoDetails>(`videos`, {
+        params: {
+            part: 'contentDetails',
+            type: 'video',
+            key: apiKey,
+            id,
+        },
+    }).then((res) =>
+        getTimeFromDuration(res.data.items.at(0)?.contentDetails.duration ?? '')
+    )
 
 // export const getVideoMetadata = debounce(
 //     (id: string): Promise<VideoMetadata> =>
