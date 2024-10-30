@@ -8,19 +8,21 @@ export class UserContextManager {
         this.userContexts = new Map()
     }
 
-    public getUserContext(user: string) {
+    public getUserContext(user: string, isIdle: () => boolean) {
         const context = this.userContexts.get(user)
 
         if (context) return context
 
-        this.userContexts.set(
-            user,
-            new UserContext(() => this.onUserContextIdle(user))
+        const newUserContext = new UserContext(
+            () => this.onUserContextIdle(user),
+            () => isIdle()
         )
+
+        this.userContexts.set(user, newUserContext)
 
         Logger.event(`Initialized context for user ${user}`)
 
-        return this.userContexts.get(user)
+        return newUserContext
     }
 
     private onUserContextIdle(user: string) {

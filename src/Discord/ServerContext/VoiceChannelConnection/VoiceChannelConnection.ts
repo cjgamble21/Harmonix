@@ -62,6 +62,10 @@ export class VoiceChannelConnection extends AutoTimeout {
         }
     }
 
+    public getCurrentVoiceChannel() {
+        return this.connection?.joinConfig.channelId
+    }
+
     public isActive: boolean = false
     private connection: VoiceConnection | null = null
     private leaveTimeout: NodeJS.Timeout | null = null

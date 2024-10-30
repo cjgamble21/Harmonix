@@ -54,18 +54,26 @@ export class ServerContext extends AutoTimeout {
         this.announce = announce
     }
 
-    public queueSong(song: VideoMetadata, user: string) {
-        this.reply(`Added ${song.title} to the queue!`, true)
-        this.player.enqueue(user, song)
+    public queueSong(videoId: string, user: string) {
+        this.getSongMetadata(videoId, user).then((song) => {
+            this.reply(`Added ${song.title} to the queue!`, true)
+            this.player.enqueue(user, song)
 
-        Logger.event(
-            `Queued ${song.title} in server ${this.guild.name}: ${this.guild.id}`
-        )
-        this.connection.cancelLeave()
+            Logger.event(
+                `Queued ${song.title} in server ${this.guild.name}: ${this.guild.id}`
+            )
+            this.connection.cancelLeave()
+        })
     }
 
     public skipSong() {
         this.player.skip()
+    }
+
+    public updateUserContext(user: string, options: VideoMetadata[]) {
+        this.getUserContext(user).then((context) =>
+            context.setLastKnownOptions(options)
+        )
     }
 
     private onMusicPlayerBegin(user: string, message: string) {
@@ -93,7 +101,7 @@ export class ServerContext extends AutoTimeout {
             'Queue is now empty. Harmonix will be disconnecting in 20 seconds'
         )
 
-        this.connection.leave()
+        this.connection.leave(20000)
     }
 
     private onMusicPlayerError(message: string) {
@@ -107,5 +115,23 @@ export class ServerContext extends AutoTimeout {
             .catch((err) => {
                 Logger.error(`Error while fetching current channel ID: ${err}`)
             })
+    }
+
+    private async getUserContext(user: string) {
+        let isIdle = () => false
+        try {
+            const channelId = await this.getVoiceChannelFromUserId(user)
+            // User context is idle if user not currently in same voice channel as audio player
+            isIdle = () =>
+                channelId !== this.connection.getCurrentVoiceChannel()
+        } catch (_) {}
+
+        return this.userContextManager.getUserContext(user, isIdle)
+    }
+
+    private async getSongMetadata(id: string, user: string) {
+        const userContext = await this.getUserContext(user)
+
+        return userContext?.getSelectedOption(id)
     }
 }

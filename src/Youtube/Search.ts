@@ -7,6 +7,7 @@ import {
 } from './types'
 import { Logger } from '../Logger'
 import { debounce } from '../Utilities'
+import { decode } from 'html-entities'
 
 const url = process.env.YOUTUBE_URL
 const apiKey = process.env.YOUTUBE_API_KEY
@@ -25,19 +26,18 @@ const YoutubeAPI = axios.create({
 
 export const queryVideos = debounce(
     (query: string): Promise<VideoMetadata[]> =>
-        YoutubeAPI.get<VideoDetails>(`search`, {
+        YoutubeAPI.get<SearchResult>(`search`, {
             params: {
-                part: ['snippet', 'contentDetails'],
+                part: 'snippet',
                 type: 'video',
                 key: apiKey,
                 q: query,
             },
         }).then((res) =>
             res.data.items.map((item) => ({
-                id: item.id,
-                title: item.snippet.title,
+                id: item.id.videoId,
+                title: decode(item.snippet.title.slice(0, 100)),
                 description: item.snippet.description,
-                duration: getTimeFromDuration(item.contentDetails.duration),
             }))
         )
 )

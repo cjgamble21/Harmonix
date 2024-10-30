@@ -1,7 +1,7 @@
 export * from './SearchResult.type'
 export * from './Videos.type'
 
-export type VideoMetadata = SearchMetadata & { duration: string }
+export type VideoMetadata = SearchMetadata
 
 export interface SearchMetadata {
     id: string

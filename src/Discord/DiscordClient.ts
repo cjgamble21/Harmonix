@@ -8,7 +8,6 @@ import {
 import { queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
-import { decode } from 'html-entities'
 import { ServerContextManager } from './ServerContext'
 import { CoreErrorBoundary } from '../Utilities'
 
@@ -52,14 +51,13 @@ class DiscordClient {
         const serverContext =
             this.serverContextManager.getServerContext(interaction)
 
+        const userId = interaction.user.id
+
         if (interaction.isCommand()) {
             switch (interaction.commandName) {
                 case 'play':
-                    const id = interaction.options.get('query')?.value
-                    // getVideoMetadata(String(id)).then((metadata) =>
-                    //     serverContext.queueSong(metadata, interaction.user.id)
-                    // )
-
+                    const id = String(interaction.options.get('query')?.value)
+                    serverContext.queueSong(id, userId)
                     break
 
                 case 'skip':
@@ -71,7 +69,16 @@ class DiscordClient {
                     break
             }
         } else if (interaction.isAutocomplete()) {
-            this.getOptionsFromQuery(interaction)
+            this.getOptionsFromQuery(interaction).then((results) => {
+                serverContext.updateUserContext(userId, results)
+
+                interaction.respond(
+                    results.map(({ id, title }) => ({
+                        name: title,
+                        value: id,
+                    }))
+                )
+            })
         }
     }
 
@@ -80,12 +87,7 @@ class DiscordClient {
 
         const results = await queryVideos(String(query))
 
-        return interaction.respond(
-            results.map(({ title, id }) => ({
-                name: decode(title.slice(0, 100)),
-                value: id,
-            }))
-        )
+        return results
     }
 
     private serverContextManager: ServerContextManager

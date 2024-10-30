@@ -69,7 +69,6 @@ export class MusicPlayer {
     }
 
     public isPlaying() {
-        console.log(this.currentSong)
         return !!this.currentSong
     }
 
@@ -91,11 +90,11 @@ export class MusicPlayer {
 
             this.onPlay(
                 nextSong.user,
-                `Playing ${nextSong.title} (${nextSong.duration})`
+                `Playing ${nextSong.title} (${songStream.playbackDuration})`
             )
 
             Logger.event(
-                `Audio Player Playing ${nextSong.title}, length ${nextSong.duration}`
+                `Audio Player Playing ${nextSong.title}, length ${songStream.playbackDuration}`
             )
         } catch (e) {
             Logger.error(`Error attempting to play ${nextSong.title}`)
