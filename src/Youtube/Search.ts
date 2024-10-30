@@ -24,43 +24,44 @@ const YoutubeAPI = axios.create({
 })
 
 export const queryVideos = debounce(
-    (query: string): Promise<SearchMetadata[]> =>
-        YoutubeAPI.get<SearchResult>(`search`, {
+    (query: string): Promise<VideoMetadata[]> =>
+        YoutubeAPI.get<VideoDetails>(`search`, {
             params: {
-                part: 'snippet',
+                part: ['snippet', 'contentDetails'],
                 type: 'video',
                 key: apiKey,
                 q: query,
             },
         }).then((res) =>
             res.data.items.map((item) => ({
-                id: item.id.videoId,
-                title: item.snippet.title,
-                description: item.snippet.description,
-            }))
-        )
-)
-
-export const getVideoMetadata = debounce(
-    (id: string): Promise<VideoMetadata> =>
-        YoutubeAPI.get<VideoDetails>(`videos`, {
-            params: {
-                part: ['snippet', 'contentDetails'],
-                type: 'video',
-                key: apiKey,
-                id,
-            },
-        }).then((res) => {
-            const [toReturn] = res.data.items.map((item) => ({
                 id: item.id,
                 title: item.snippet.title,
                 description: item.snippet.description,
                 duration: getTimeFromDuration(item.contentDetails.duration),
             }))
-
-            return toReturn
-        })
+        )
 )
+
+// export const getVideoMetadata = debounce(
+//     (id: string): Promise<VideoMetadata> =>
+//         YoutubeAPI.get<VideoDetails>(`videos`, {
+//             params: {
+//                 part: ['snippet', 'contentDetails'],
+//                 type: 'video',
+//                 key: apiKey,
+//                 id,
+//             },
+//         }).then((res) => {
+//             const [toReturn] = res.data.items.map((item) => ({
+//                 id: item.id,
+//                 title: item.snippet.title,
+//                 description: item.snippet.description,
+//                 duration: getTimeFromDuration(item.contentDetails.duration),
+//             }))
+
+//             return toReturn
+//         })
+// )
 
 const getTimeFromDuration = (duration: string) => {
     const durationRegex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/

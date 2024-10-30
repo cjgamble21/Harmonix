@@ -2,11 +2,10 @@ import {
     AutocompleteInteraction,
     Client,
     Events,
-    Guild,
     IntentsBitField,
     Interaction,
 } from 'discord.js'
-import { getVideoMetadata, queryVideos } from '../Youtube'
+import { queryVideos } from '../Youtube'
 import { Logger } from '../Logger'
 import { deployCommands } from './Commands/DeployCommands'
 import { decode } from 'html-entities'
@@ -16,8 +15,6 @@ import { CoreErrorBoundary } from '../Utilities'
 @CoreErrorBoundary
 class DiscordClient {
     constructor() {
-        this.botId = process.env.DISCORD_BOT_ID ?? ''
-        this.botToken = process.env.DISCORD_BOT_TOKEN ?? ''
         this.serverContextManager = new ServerContextManager()
 
         this.client = new Client({
@@ -30,7 +27,7 @@ class DiscordClient {
             ],
         })
 
-        this.client.login(this.botToken)
+        this.client.login(BOT_TOKEN)
 
         this.registerLifecycleMethods()
     }
@@ -59,9 +56,9 @@ class DiscordClient {
             switch (interaction.commandName) {
                 case 'play':
                     const id = interaction.options.get('query')?.value
-                    getVideoMetadata(String(id)).then((metadata) =>
-                        serverContext.queueSong(metadata, interaction.user.id)
-                    )
+                    // getVideoMetadata(String(id)).then((metadata) =>
+                    //     serverContext.queueSong(metadata, interaction.user.id)
+                    // )
 
                     break
 
@@ -91,8 +88,6 @@ class DiscordClient {
         )
     }
 
-    private botId: string
-    private botToken: string
     private serverContextManager: ServerContextManager
     private client: Client
 }

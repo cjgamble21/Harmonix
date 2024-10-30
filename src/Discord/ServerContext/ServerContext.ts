@@ -4,11 +4,13 @@ import { MusicPlayer } from './MusicPlayer'
 import { Guild } from 'discord.js'
 import { AutoTimeout } from '../../Utilities'
 import { VoiceChannelConnection } from './VoiceChannelConnection'
+import { UserContextManager } from './UserContext'
 
 export class ServerContext extends AutoTimeout {
     private guild: Guild
     private player: MusicPlayer
     private connection: VoiceChannelConnection
+    private userContextManager: UserContextManager
     private reply: (message: string, ephemeral?: boolean) => void
     private announce: (message: string) => void
 
@@ -35,6 +37,8 @@ export class ServerContext extends AutoTimeout {
             () => this.announce('Unable to join voice channel'), // On join error
             (connection) => connection.disconnect() // On leave
         )
+
+        this.userContextManager = new UserContextManager()
 
         this.reply = () => {}
         this.announce = () => {}

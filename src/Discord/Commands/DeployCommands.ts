@@ -1,12 +1,11 @@
 import { REST, Routes } from 'discord.js'
 import * as Commands from './index'
 
-const botToken = process.env.DISCORD_BOT_TOKEN
 const botId = process.env.DISCORD_BOT_ID
 
-if (!botToken || !botId) throw new Error('Missing bot token or bot ID')
+if (!botId) throw new Error('Missing bot token or bot ID')
 
-const rest = new REST().setToken(botToken)
+const rest = new REST().setToken(BOT_TOKEN)
 
 export const deployCommands = () => {
     rest.put(Routes.applicationCommands(botId), {
