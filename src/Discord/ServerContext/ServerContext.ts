@@ -13,12 +13,11 @@ export class ServerContext extends AutoTimeout {
     private announce: (message: string) => void
 
     constructor(guild: Guild, onIdle: (id: string) => void) {
+        // Initialize auto timeout
         super(
-            () => {
-                onIdle(guild.id)
-            },
-            () => this.player.queueIsEmpty()
-        ) // Initialize auto timeout
+            () => onIdle(guild.id),
+            () => !this.player.isPlaying()
+        )
 
         this.guild = guild
 
@@ -31,7 +30,7 @@ export class ServerContext extends AutoTimeout {
 
         this.connection = new VoiceChannelConnection(
             guild,
-            () => this.player.queueIsEmpty(), // Idling condition
+            () => !this.player.isPlaying(), // Idling condition
             (connection) => connection.subscribe(this.player.getPlayer()), // On join
             () => this.announce('Unable to join voice channel'), // On join error
             (connection) => connection.disconnect() // On leave
@@ -55,7 +54,9 @@ export class ServerContext extends AutoTimeout {
         this.reply(`Added ${song.title} to the queue!`, true)
         this.player.enqueue(user, song)
 
-        Logger.event(`Queued ${song.title} in server ${this.guild.id}`)
+        Logger.event(
+            `Queued ${song.title} in server ${this.guild.name}: ${this.guild.id}`
+        )
         this.connection.cancelLeave()
     }
 

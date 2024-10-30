@@ -1,13 +1,14 @@
 import {
-    AudioPlayer,
     DiscordGatewayAdapterCreator,
     VoiceConnection,
+    VoiceConnectionState,
     joinVoiceChannel,
 } from '@discordjs/voice'
 import { AutoTimeout } from '../../../Utilities'
 import { Guild } from 'discord.js'
 
 const VOICE_CHANNEL_TIMEOUT = 20000
+const TIMEOUT_INTERVAL_CHECK = 5000
 
 export class VoiceChannelConnection extends AutoTimeout {
     constructor(
@@ -17,7 +18,12 @@ export class VoiceChannelConnection extends AutoTimeout {
         onJoinFailure: () => void,
         onLeave: (connection: VoiceConnection) => void
     ) {
-        super(() => this.leave(), isIdle, VOICE_CHANNEL_TIMEOUT)
+        super(
+            () => this.leave(),
+            () => isIdle(),
+            VOICE_CHANNEL_TIMEOUT,
+            TIMEOUT_INTERVAL_CHECK
+        )
 
         this.guild = guild
 
@@ -27,8 +33,6 @@ export class VoiceChannelConnection extends AutoTimeout {
     }
 
     public join(channelId: string) {
-        this.connection?.removeAllListeners()
-
         this.connection = joinVoiceChannel({
             channelId,
             guildId: this.guild.id,
@@ -36,28 +40,12 @@ export class VoiceChannelConnection extends AutoTimeout {
                 .voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator, // Annoying but needed after update to discord voice
         })
 
-        this.connection?.on('error', () => {
+        this.connection.on('error', (err) => {
             this.leave()
             this.onJoinFailure()
         })
 
-        this.connection.on('stateChange', (oldState, newState) => {
-            if (!this.connection) {
-                this.onJoinFailure()
-                return
-            }
-
-            const { status } = newState
-
-            switch (status) {
-                case 'ready':
-                    this.onJoin(this.connection)
-
-                case 'disconnected':
-                case 'destroyed':
-                    this.onLeave(this.connection)
-            }
-        })
+        this.onJoin(this.connection)
     }
 
     public leave(timeout = 0) {
@@ -72,10 +60,6 @@ export class VoiceChannelConnection extends AutoTimeout {
             clearTimeout(this.leaveTimeout)
             this.leaveTimeout = null
         }
-    }
-
-    public subscribeAudioPlayer(player: AudioPlayer) {
-        this.connection?.subscribe(player)
     }
 
     public isActive: boolean = false

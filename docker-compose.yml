@@ -1,0 +1,8 @@
+services:
+  Harmonix:
+    image: "node:latest"
+    user: "node"
+    working_dir: /usr/src/app
+    volumes: 
+      - ./:/usr/src/app
+    command: sh -c "rm -rf dist && npm run build && npm start"

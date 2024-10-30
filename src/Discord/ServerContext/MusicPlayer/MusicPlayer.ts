@@ -68,8 +68,9 @@ export class MusicPlayer {
         }
     }
 
-    public queueIsEmpty() {
-        return this.queue.isEmpty()
+    public isPlaying() {
+        console.log(this.currentSong)
+        return !!this.currentSong
     }
 
     private playNextSong() {
@@ -105,6 +106,7 @@ export class MusicPlayer {
     private registerLifecycleMethods() {
         this.player.on(AudioPlayerStatus.Idle, () => {
             Logger.event('Audio Player Idling...')
+            this.currentSong = null
             this.playNextSong()
         })
         this.player.on(AudioPlayerStatus.Buffering, () =>
@@ -117,6 +119,7 @@ export class MusicPlayer {
 
         this.player.on('error', () => {
             this.onError(`Error attempting to play ${this.currentSong?.title}`)
+            this.currentSong = null
             this.playNextSong()
         })
     }

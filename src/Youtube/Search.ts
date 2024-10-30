@@ -67,10 +67,8 @@ const getTimeFromDuration = (duration: string) => {
     return duration
         .replace(durationRegex, '$1:$2:$3')
         .split(':')
-        .filter(Boolean)
-        .map(
-            (duration, index) =>
-                index === 0 ? duration : duration.padStart(2, '0') // We only want to pad 0 if it is not the first duration
-        )
+        .map(String)
+        .map((duration) => duration.padStart(2, '0'))
+        .filter((duration) => duration !== '00')
         .join(':')
 }
