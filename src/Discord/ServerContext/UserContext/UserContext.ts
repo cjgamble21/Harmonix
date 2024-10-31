@@ -1,4 +1,5 @@
 import { AutoTimeout } from '../../../Utilities'
+import { queryVideos } from '../../../Youtube'
 import { VideoMetadata } from '../../../Youtube/types'
 
 export class UserContext extends AutoTimeout {
@@ -9,16 +10,25 @@ export class UserContext extends AutoTimeout {
         )
     }
 
-    public getSelectedOption(option: string) {
+    public async getSongOptions(query: string) {
+        const options = await queryVideos(query)
+
+        this.lastKnownOptions = options
+
+        return options
+    }
+
+    public async getSelectedOption(option: string) {
+        if (this.lastKnownOptions.length === 0) {
+            const options = await queryVideos(option)
+            return options[0]
+        }
+
         const matchingOption = this.lastKnownOptions.find(
             ({ id, title }) => option === id || option === title
         )
 
         return matchingOption ?? this.lastKnownOptions?.[0] ?? null
-    }
-
-    public setLastKnownOptions(options: VideoMetadata[]) {
-        this.lastKnownOptions = options
     }
 
     private lastKnownOptions: VideoMetadata[] = []

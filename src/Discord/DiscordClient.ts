@@ -77,9 +77,8 @@ class DiscordClient {
                     break
             }
         } else if (interaction.isAutocomplete()) {
-            this.getOptionsFromQuery(interaction).then((results) => {
-                serverContext.updateUserContext(userId, results)
-
+            const query = String(interaction.options.get('query')?.value)
+            serverContext.getSongOptions(query, userId).then((results) => {
                 interaction.respond(
                     results.map(({ id, title }) => ({
                         name: title,
@@ -88,14 +87,6 @@ class DiscordClient {
                 )
             })
         }
-    }
-
-    private async getOptionsFromQuery(interaction: AutocompleteInteraction) {
-        const query = interaction.options.get('query')?.value
-
-        const results = await queryVideos(String(query))
-
-        return results
     }
 
     private serverContextManager: ServerContextManager

@@ -92,9 +92,9 @@ export class ServerContext extends AutoTimeout {
         }
     }
 
-    public updateUserContext(user: string, options: VideoMetadata[]) {
-        this.getUserContext(user).then((context) =>
-            context.setLastKnownOptions(options)
+    public getSongOptions(query: string, user: string) {
+        return this.getUserContext(user).then((context) =>
+            context.getSongOptions(query)
         )
     }
 
