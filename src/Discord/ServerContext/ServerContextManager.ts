@@ -33,7 +33,9 @@ export class ServerContextManager {
                 ? { content: message, ephemeral }
                 : message
 
-            interaction.reply(payload)
+            interaction.replied
+                ? interaction.followUp(payload)
+                : interaction.reply(payload)
         })
         serverContext.setAnnounce((message: string) => {
             const { channelId } = interaction

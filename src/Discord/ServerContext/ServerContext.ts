@@ -68,6 +68,7 @@ export class ServerContext extends AutoTimeout {
 
     public skipSong() {
         this.player.skip()
+        this.reply('Skipped!', true)
     }
 
     public pauseMusic() {
@@ -102,9 +103,10 @@ export class ServerContext extends AutoTimeout {
         this.connection.cancelLeave()
         this.getVoiceChannelFromUserId(user).then((channelId) => {
             if (!channelId) {
-                this.announce(
-                    `Whoops! I won't be able to play your song until you are in the voice channel @${user}`
+                this.reply(
+                    `Whoops! I won't be able to play your song until you are in the voice channel`
                 )
+                this.player.stop()
                 return
             }
 
@@ -114,7 +116,6 @@ export class ServerContext extends AutoTimeout {
     }
 
     private onMusicPlayerSkip(message: string) {
-        this.reply('Skipped!')
         this.announce(message)
     }
 
