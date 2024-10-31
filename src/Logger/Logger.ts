@@ -6,7 +6,7 @@ export namespace Logger {
                     `[${new Date().toUTCString()}] :: APPLICATION ERROR :: ${error}`
             )
             .forEach((error) => {
-                console.error(error)
+                console.trace(error)
             })
     }
 
