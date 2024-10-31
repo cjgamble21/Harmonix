@@ -96,7 +96,7 @@ export class MusicPlayer {
                 `Audio Player Playing ${nextSong.title}, length ${length}`
             )
         } catch (e) {
-            Logger.error(`Error attempting to play ${nextSong.title}`)
+            Logger.error(`Error attempting to play ${nextSong.title} :: ${e}`)
             this.onError(`Error attempting to play ${nextSong.title}`)
         }
     }
