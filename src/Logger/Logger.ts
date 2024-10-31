@@ -5,7 +5,9 @@ export namespace Logger {
                 (error) =>
                     `[${new Date().toUTCString()}] :: APPLICATION ERROR :: ${error}`
             )
-            .forEach((error) => console.error(error))
+            .forEach((error) => {
+                console.error(error)
+            })
     }
 
     export function warn(...warnings: string[]) {

@@ -72,17 +72,23 @@ export class ServerContext extends AutoTimeout {
 
     public pauseMusic() {
         if (this.player.pause()) {
-            this.reply('Paused!')
+            this.reply('Paused!', true)
         } else {
-            this.reply('Unable to pause music... is there anything to pause?')
+            this.reply(
+                'Unable to pause music... is there anything to pause?',
+                true
+            )
         }
     }
 
     public resumeMusic() {
         if (this.player.resume()) {
-            this.reply('Resumed!')
+            this.reply('Resumed!', true)
         } else {
-            this.reply('Unable to resume music... am I in your voice channel?')
+            this.reply(
+                'Unable to resume music... am I in your voice channel?',
+                true
+            )
         }
     }
 

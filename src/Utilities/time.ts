@@ -1,9 +1,11 @@
-export const formatMillisecondsToMinutesAndSeconds = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000)
+export const formatSecondsToTimestamp = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds / 60) % 60)
+    const secs = seconds % 60
 
-    const minutes = Math.floor(totalSeconds / 60)
-
-    const seconds = totalSeconds % 60
-
-    return `${minutes}:${seconds}`
+    return [hours, minutes, secs]
+        .filter((number, index) => index > 0 || number > 0)
+        .map(String)
+        .map((time, index) => (index > 0 ? time.padStart(2, '0') : time))
+        .join(':')
 }

@@ -10,6 +10,7 @@ import { VideoMetadata } from '../../../Youtube/types'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../../Logger'
 import { readFileSync } from 'fs'
+import { formatSecondsToTimestamp } from '../../../Utilities'
 
 export type QueuedMusic = VideoMetadata & { user: string }
 
@@ -73,7 +74,7 @@ export class MusicPlayer {
         return !!this.currentSong
     }
 
-    private playNextSong() {
+    private async playNextSong() {
         if (this.queue.isEmpty()) {
             this.onFinish()
             return
@@ -82,20 +83,17 @@ export class MusicPlayer {
         const nextSong = this.queue.pop()!
 
         try {
-            const songStream =
-                MusicPlayer.getSongStreamFromVideoMetadata(nextSong)
+            const { stream, length } =
+                await MusicPlayer.getSongStreamFromVideoMetadata(nextSong)
 
             this.currentSong = nextSong
 
-            this.player.play(songStream)
+            this.player.play(stream)
 
-            this.onPlay(
-                nextSong.user,
-                `Playing ${nextSong.title} (${songStream.playbackDuration})`
-            )
+            this.onPlay(nextSong.user, `Playing ${nextSong.title} (${length})`)
 
             Logger.event(
-                `Audio Player Playing ${nextSong.title}, length ${songStream.playbackDuration}`
+                `Audio Player Playing ${nextSong.title}, length ${length}`
             )
         } catch (e) {
             Logger.error(`Error attempting to play ${nextSong.title}`)
@@ -124,11 +122,19 @@ export class MusicPlayer {
         })
     }
 
-    private static getSongStreamFromVideoMetadata(metadata: VideoMetadata) {
+    private static async getSongStreamFromVideoMetadata(
+        metadata: VideoMetadata
+    ) {
         const url = `https://youtube.com/watch?v=${metadata.id}`
         const cookies = JSON.parse(readFileSync('cookies.json').toString())
 
         const agent = ytdl.createAgent(cookies)
+
+        const info = await ytdl.getBasicInfo(url)
+
+        const length = formatSecondsToTimestamp(
+            Number(info.player_response.videoDetails.lengthSeconds)
+        )
 
         const songStream = ytdl(url, {
             filter: 'audioonly',
@@ -141,6 +147,11 @@ export class MusicPlayer {
             liveBuffer: 1 << 62,
             dlChunkSize: 0,
         })
-        return createAudioResource(songStream, { silencePaddingFrames: 20 })
+        return {
+            stream: createAudioResource(songStream, {
+                silencePaddingFrames: 20,
+            }),
+            length,
+        }
     }
 }
