@@ -1,8 +1,11 @@
-export const debounce = <T, R>(func: (...args: T[]) => R, timeout = 500) => {
+export const debounce = <T extends (...args: any) => any>(
+    func: T,
+    timeout = 500
+) => {
     let timer: NodeJS.Timeout
 
-    return (...args: T[]) =>
-        new Promise<Awaited<R>>((resolve) => {
+    return (...args: Parameters<T>) =>
+        new Promise<Awaited<ReturnType<T>>>((resolve) => {
             clearTimeout(timer)
 
             timer = setTimeout(async () => {

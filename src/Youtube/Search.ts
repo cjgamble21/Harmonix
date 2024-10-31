@@ -1,10 +1,5 @@
 import axios from 'axios'
-import {
-    SearchMetadata,
-    SearchResult,
-    VideoDetails,
-    VideoMetadata,
-} from './types'
+import { SearchMetadata, SearchResult } from './types'
 import { Logger } from '../Logger'
 import { debounce } from '../Utilities'
 import { decode } from 'html-entities'
