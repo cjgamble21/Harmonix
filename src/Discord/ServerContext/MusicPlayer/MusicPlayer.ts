@@ -128,7 +128,7 @@ export class MusicPlayer {
         const url = `https://youtube.com/watch?v=${metadata.id}`
         const cookies = existsSync('cookies.json')
             ? JSON.parse(readFileSync('cookies.json').toString())
-            : {}
+            : []
 
         const agent = ytdl.createAgent(cookies)
 
