@@ -9,7 +9,7 @@ import { Queue } from '../../../Queue'
 import { VideoMetadata } from '../../../Youtube/types'
 import ytdl from '@distube/ytdl-core'
 import { Logger } from '../../../Logger'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { formatSecondsToTimestamp } from '../../../Utilities'
 
 export type QueuedMusic = VideoMetadata & { user: string }
@@ -126,7 +126,9 @@ export class MusicPlayer {
         metadata: VideoMetadata
     ) {
         const url = `https://youtube.com/watch?v=${metadata.id}`
-        const cookies = JSON.parse(readFileSync('cookies.json').toString())
+        const cookies = existsSync('cookies.json')
+            ? JSON.parse(readFileSync('cookies.json').toString())
+            : {}
 
         const agent = ytdl.createAgent(cookies)
 
@@ -146,6 +148,7 @@ export class MusicPlayer {
             highWaterMark: 1 << 25,
             liveBuffer: 1 << 62,
             dlChunkSize: 0,
+            requestOptions: {},
         })
         return {
             stream: createAudioResource(songStream, {
